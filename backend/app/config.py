@@ -2,9 +2,9 @@
 Configuration de l'application Flask.
 
 Ce module définit les différentes configurations selon l'environnement :
-- Development : pour développer en local
-- Production : pour déployer en ligne
-- Testing : pour lancer les tests
+- Development : pour développer en local (SQLite)
+- Production : pour déployer en ligne (MySQL/PostgreSQL)
+- Testing : pour lancer les tests (SQLite en mémoire)
 """
 import os
 from datetime import timedelta
@@ -13,31 +13,57 @@ from datetime import timedelta
 class Config:
     """Configuration de base commune à tous les environnements."""
     
-    # === CLÉ SECRÈTE (utilisée pour signer les sessions Flask) ===
-    # En dev, on utilise une valeur par défaut
-    # En prod, on la charge depuis les variables d'environnement
+    # ============================================
+    # SÉCURITÉ
+    # ============================================
+    
+    # Clé secrète (utilisée pour signer les cookies)
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-CHANGE-IN-PRODUCTION')
     
-    # === JSON (format des réponses API) ===
-    # Ne pas trier les clés alphabétiquement
+    # ============================================
+    # JSON
+    # ============================================
+    
+    # Ne pas trier les clés alphabétiquement dans les réponses JSON
     JSON_SORT_KEYS = False
     
-    # === API DOCUMENTATION (Swagger) ===
-    RESTX_MASK_SWAGGER = False  # Désactiver le champ X-Fields
+    # ============================================
+    # API DOCUMENTATION (Swagger)
+    # ============================================
     
+    RESTX_MASK_SWAGGER = False
+    
+    # ============================================
+    # BASE DE DONNÉES (SQLAlchemy)
+    # ============================================
+    
+    # Désactive une fonctionnalité obsolète qui consomme de la mémoire
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
 
 class DevelopmentConfig(Config):
     """Configuration pour le développement local."""
     
-    DEBUG = True    # Mode debug : auto-reload + pages d'erreur détaillées
+    DEBUG = True
     ENV = 'development'
     
+    # === BASE DE DONNÉES : SQLite ===
+    # Format : sqlite:///nom_du_fichier.db
+    # Le fichier dev.db sera créé dans le dossier backend/
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///dev.db'
+
 
 class ProductionConfig(Config):
     """Configuration pour la production."""
     
-    DEBUG = False   # JAMAIS de debug en prod (dangereux !)
+    DEBUG = False
     ENV = 'production'
+    
+    # === BASE DE DONNÉES : MySQL (via variable d'environnement) ===
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        'DATABASE_URL',
+        'mysql+pymysql://user:pass@localhost/kpit_auth'
+    )
 
 
 class TestingConfig(Config):
@@ -45,9 +71,16 @@ class TestingConfig(Config):
     
     TESTING = True
     DEBUG = True
+    
+    # === BASE DE DONNÉES : SQLite en mémoire ===
+    # ':memory:' = pas de fichier, la BD existe uniquement pendant les tests
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
 
 
-# Dictionnaire pour choisir la config selon l'environnement
+# ============================================
+# DICTIONNAIRE DES CONFIGURATIONS
+# ============================================
+# Permet de choisir la config selon l'environnement
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
