@@ -1,0 +1,21 @@
+# Virtual environment
+venv/
+env/
+
+# Test results (générés automatiquement)
+results/
+output.xml
+log.html
+report.html
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
