@@ -64,3 +64,30 @@ ${STATUS_FORBIDDEN}        403
 ${STATUS_NOT_FOUND}        404
 ${STATUS_CONFLICT}         409
 ${STATUS_SERVER_ERROR}     500
+
+# =============================================================
+# UI CONFIGURATION (Frontend)
+# =============================================================
+${FRONTEND_URL}            http://localhost:4200
+${BROWSER}                 chrome
+${IMPLICIT_WAIT}           5s
+
+# =============================================================
+# UI SELECTORS (Frontend Elements) - AMÉLIORÉS
+# =============================================================
+
+# Login Page URLs
+${LOGIN_URL}               ${FRONTEND_URL}/login
+${WELCOME_URL}             ${FRONTEND_URL}/welcome
+
+# Login Page Elements
+${USERNAME_FIELD}          css=input[formcontrolname="login"]
+${PASSWORD_FIELD}          css=input[formcontrolname="password"]
+${SIGNIN_BUTTON}           css=button[type="submit"]
+${ERROR_MESSAGE}           css=.error-message
+${SHOW_PASSWORD_BUTTON}    css=button[mat-icon-button][matSuffix]
+
+# Welcome Page Elements
+${WELCOME_TITLE}           css=.welcome-title
+${LOGOUT_BUTTON}           css=.logout-button
+${USER_INFO}               css=.user-info
