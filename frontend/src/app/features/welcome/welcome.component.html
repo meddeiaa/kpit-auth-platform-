@@ -1,0 +1,70 @@
+<div class="welcome-container" *ngIf="user">
+  <mat-card class="welcome-card">
+    
+    <mat-card-header>
+      <mat-card-title class="welcome-title">
+        <mat-icon class="success-icon">check_circle</mat-icon>
+        Welcome, {{ user.first_name }} {{ user.last_name }}!
+      </mat-card-title>
+      <mat-card-subtitle>You are successfully logged in</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content class="welcome-content">
+      
+      <div class="user-info">
+        
+        <div class="info-item">
+          <mat-icon>badge</mat-icon>
+          <div>
+            <strong>Username</strong>
+            <p>{{ user.login }}</p>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <mat-icon>email</mat-icon>
+          <div>
+            <strong>Email</strong>
+            <p>{{ user.email }}</p>
+          </div>
+        </div>
+        
+        <div class="info-item">
+          <mat-icon [ngStyle]="{ color: '#667eea' }">{{ getRoleIcon(user.role) }}</mat-icon>
+          <div>
+            <strong>Role</strong>
+            <mat-chip [color]="getRoleColor(user.role)" selected>
+              {{ user.role | uppercase }}
+            </mat-chip>
+          </div>
+        </div>
+        
+        <div class="info-item">
+          <mat-icon>schedule</mat-icon>
+          <div>
+            <strong>Login Time</strong>
+            <p>{{ loginTime | date:'medium' }}</p>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <mat-icon>fingerprint</mat-icon>
+          <div>
+            <strong>User ID</strong>
+            <p>#{{ user.id }}</p>
+          </div>
+        </div>
+
+      </div>
+
+    </mat-card-content>
+
+    <mat-card-actions class="welcome-actions">
+      <button mat-raised-button color="warn" (click)="onLogout()" class="logout-button">
+        <mat-icon>logout</mat-icon>
+        Logout
+      </button>
+    </mat-card-actions>
+
+  </mat-card>
+</div>
