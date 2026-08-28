@@ -1,0 +1,48 @@
+<header class="vex-toolbar">
+
+  <button mat-icon-button
+          type="button"
+          (click)="toggleMenu()"
+          class="header-icon-btn"
+          matTooltip="Menu"
+          aria-label="Toggle menu">
+    <mat-icon>menu</mat-icon>
+  </button>
+
+  <span class="flex-1"></span>
+
+  <div class="header-actions">
+    <button mat-icon-button
+            type="button"
+            matTooltip="No new notifications"
+            class="header-icon-btn">
+      <mat-icon>notifications_none</mat-icon>
+    </button>
+
+    <div class="divider-vertical"></div>
+
+    <button mat-icon-button
+            type="button"
+            [matMenuTriggerFor]="userMenu"
+            matTooltip="Account"
+            class="user-btn">
+      <div class="user-avatar-mini">
+        {{ currentUser?.first_name?.charAt(0) || 'A' }}{{ currentUser?.last_name?.charAt(0) || 'B' }}
+      </div>
+    </button>
+
+    <mat-menu #userMenu="matMenu">
+      <div class="user-menu-header" style="padding: 12px 16px; outline: none;">
+        <strong style="display:block; font-size:14px;">
+          {{ currentUser?.first_name }} {{ currentUser?.last_name }}
+        </strong>
+        <span style="color:#64748b; font-size:12px;">{{ currentUser?.email }}</span>
+      </div>
+      <mat-divider></mat-divider>
+      <button mat-menu-item type="button" (click)="logout()">
+        <mat-icon color="warn">logout</mat-icon>
+        <span style="color:#dc2626; font-weight:500;">Sign Out</span>
+      </button>
+    </mat-menu>
+  </div>
+</header>

@@ -1,0 +1,111 @@
+<div class="vex-dialog-container">
+
+  <div class="vex-dialog-header">
+    <h2 class="headline">
+      {{ isEditMode ? 'Edit Test Case' : 'New Test Case' }}
+    </h2>
+
+    <div class="header-actions">
+      <button mat-icon-button
+              type="button"
+              [matMenuTriggerFor]="dialogMenu"
+              class="header-icon-btn">
+        <mat-icon>more_vert</mat-icon>
+      </button>
+
+      <button mat-icon-button
+              type="button"
+              (click)="onCancel()"
+              class="header-icon-btn">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="vex-dialog-form">
+    <mat-dialog-content class="vex-dialog-content">
+
+      <!-- Suite -->
+      <mat-form-field appearance="outline" class="full-width vex-field" subscriptSizing="dynamic">
+        <mat-label>Target Test Suite</mat-label>
+        <mat-icon matIconPrefix>folder_open</mat-icon>
+        <mat-select formControlName="suiteName">
+          <mat-option *ngFor="let suite of data.suites" [value]="suite">
+            {{ suite }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Test Name -->
+      <mat-form-field appearance="outline" class="full-width vex-field" subscriptSizing="dynamic">
+        <mat-label>Test Name</mat-label>
+        <mat-icon matIconPrefix>assignment</mat-icon>
+        <input matInput
+               formControlName="name"
+               placeholder="Ex: Verify login security"
+               autocomplete="off">
+        <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
+        <mat-error *ngIf="form.get('name')?.hasError('minlength')">Minimum 3 characters</mat-error>
+      </mat-form-field>
+
+      <!-- Description -->
+      <mat-form-field appearance="outline" class="full-width vex-field vex-textarea" subscriptSizing="dynamic">
+        <mat-label>Description</mat-label>
+        <mat-icon matIconPrefix>description</mat-icon>
+        <textarea matInput
+                  formControlName="documentation"
+                  rows="3"
+                  placeholder="Explain the purpose of this test..."></textarea>
+        <mat-error *ngIf="form.get('documentation')?.hasError('required')">
+          Description is required
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Tags -->
+      <mat-form-field appearance="outline" class="full-width vex-field" subscriptSizing="dynamic">
+        <mat-label>Tags (Categories)</mat-label>
+        <mat-icon matIconPrefix>local_offer</mat-icon>
+
+        <mat-select formControlName="tags"
+                    multiple
+                    panelClass="vex-select-panel">
+          <mat-select-trigger>
+            <span class="vex-select-chips" *ngIf="form.get('tags')?.value?.length; else emptyTags">
+              <span class="vex-chip" *ngFor="let tag of form.get('tags')?.value">
+                {{ tag }}
+              </span>
+            </span>
+            <ng-template #emptyTags></ng-template>
+          </mat-select-trigger>
+
+          <mat-option *ngFor="let tag of data.availableTags" [value]="tag">
+            {{ tag }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+    </mat-dialog-content>
+
+    <div class="vex-dialog-actions">
+      <button mat-button
+              type="button"
+              (click)="onCancel()"
+              class="btn-cancel">
+        Cancel
+      </button>
+      <button mat-flat-button
+              type="submit"
+              [disabled]="form.invalid"
+              class="btn-submit">
+        {{ isEditMode ? 'Save Changes' : 'Create Test Case' }}
+      </button>
+    </div>
+  </form>
+</div>
+
+<mat-menu #dialogMenu="matMenu" xPosition="before">
+  <button mat-menu-item type="button" (click)="onReset()">
+    <mat-icon>refresh</mat-icon>
+    <span>Reset Form</span>
+  </button>
+</mat-menu>

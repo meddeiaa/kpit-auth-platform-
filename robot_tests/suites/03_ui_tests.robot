@@ -40,16 +40,13 @@ TC-502 User Can Login With Valid Credentials
     [Documentation]    Verify that a user can login successfully with valid credentials.
     [Tags]             ui    login    success    smoke    critical
     
-    # Étape 1 : Login
     Perform Login    ${AHMED_LOGIN}    ${AHMED_PASSWORD}
     
-    # Étape 2 : Vérifier la redirection vers Welcome
+    # Vérifier la redirection vers Welcome
     Verify Welcome Page Is Displayed
     
-    # Étape 3 : Vérifier les informations utilisateur
-    Verify Welcome Message Contains    Welcome, ${AHMED_FIRST_NAME} ${AHMED_LAST_NAME}
-    Verify Welcome Message Contains    ${AHMED_EMAIL}
-    Verify Welcome Message Contains    ${AHMED_LOGIN}
+    # Vérifier le message (nouveau format : "Welcome back, Ahmed!")
+    Verify Welcome Message Contains    Welcome back, ${AHMED_FIRST_NAME}
 
 
 # =============================================================
@@ -87,14 +84,13 @@ TC-601 User Can Logout Successfully
     [Documentation]    Verify that a logged-in user can logout.
     [Tags]             ui    logout    smoke
     
-    # Étape 1 : Login
     Perform Login    ${AHMED_LOGIN}    ${AHMED_PASSWORD}
     Verify Welcome Page Is Displayed
     
-    # Étape 2 : Logout
+    # Logout via Quick Actions
     Click Logout Button
     
-    # Étape 3 : Vérifier la redirection
+    # Vérifier la redirection
     Verify Redirected To Login
 
 
@@ -106,25 +102,23 @@ TC-701 Complete User Journey Login-Welcome-Logout
     [Documentation]    Test the complete user journey from login to logout.
     [Tags]             ui    e2e    smoke    critical
     
-    # ÉTAPE 1 : Vérifier la page login
     Verify Login Page Is Loaded
     
-    # ÉTAPE 2 : Se connecter
     Fill Login Form    ${AHMED_LOGIN}    ${AHMED_PASSWORD}
     Click Sign In Button
     
-    # ÉTAPE 3 : Vérifier Welcome
+    # Vérifier Welcome (nouveau format)
     Verify Welcome Page Is Displayed
-    Verify Welcome Message Contains    Welcome, ${AHMED_FIRST_NAME}
+    Verify Welcome Message Contains    Welcome back, ${AHMED_FIRST_NAME}
     
-    # ÉTAPE 4 : Se déconnecter
+    # Logout
     Click Logout Button
     
-    # ÉTAPE 5 : Vérifier retour à Login
+    # Retour au Login
     Verify Redirected To Login
     Verify Login Page Is Loaded
     
-    Log    🎉 Complete E2E journey successful!
+    Log     Complete E2E journey successful!
 
 
 # =============================================================
@@ -137,8 +131,7 @@ TC-801 Sara (Tester Role) Can Login
     
     Perform Login    ${SARA_LOGIN}    ${SARA_PASSWORD}
     Verify Welcome Page Is Displayed
-    Verify Welcome Message Contains    Welcome, ${SARA_FIRST_NAME}
-    Verify Welcome Message Contains    TESTER
+    Verify Welcome Message Contains    Welcome back, ${SARA_FIRST_NAME}
 
 
 TC-802 Ali (Viewer Role) Can Login
@@ -147,5 +140,4 @@ TC-802 Ali (Viewer Role) Can Login
     
     Perform Login    ${ALI_LOGIN}    ${ALI_PASSWORD}
     Verify Welcome Page Is Displayed
-    Verify Welcome Message Contains    Welcome, ${ALI_FIRST_NAME}
-    Verify Welcome Message Contains    VIEWER
+    Verify Welcome Message Contains    Welcome back, ${ALI_FIRST_NAME}

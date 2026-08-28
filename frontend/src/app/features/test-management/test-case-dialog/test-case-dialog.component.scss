@@ -1,0 +1,275 @@
+/* =========================================================
+   VEX TEST CASE DIALOG
+   ========================================================= */
+
+.vex-dialog-container {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* ---------- HEADER ---------- */
+.vex-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 12px 4px 24px;
+
+  .headline {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    color: #111827;
+    font-family: var(--vex-font, 'Inter', sans-serif);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+  }
+
+  .header-icon-btn {
+    width: 40px !important;
+    height: 40px !important;
+    color: #6b7280 !important;
+    background: transparent !important;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.04) !important;
+    }
+
+    mat-icon {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+    }
+  }
+}
+
+/* ---------- LAYOUT ---------- */
+.vex-dialog-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.vex-dialog-content {
+  display: flex !important;
+  flex-direction: column;
+  gap: 16px; /* Espacement régulier entre chaque champ */
+  padding: 16px 24px 8px !important;
+  margin: 0 !important;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* ---------- CHAMPS D'UNE SEULE LIGNE (Suite, Name, Tags) ---------- */
+.vex-field {
+  width: 100%;
+  margin: 0 !important;
+
+  ::ng-deep {
+    .mat-mdc-text-field-wrapper {
+      background: transparent !important;
+    }
+
+    .mat-mdc-form-field-focus-overlay {
+      background: transparent !important;
+    }
+
+    .mat-mdc-form-field-subscript-wrapper {
+      margin-top: 2px;
+    }
+
+    /* Radius 8px */
+    .mdc-notched-outline__leading {
+      border-top-left-radius: 8px !important;
+      border-bottom-left-radius: 8px !important;
+      border-right: none !important;
+    }
+
+    .mdc-notched-outline__trailing {
+      border-top-right-radius: 8px !important;
+      border-bottom-right-radius: 8px !important;
+    }
+
+    .mdc-notched-outline__notch {
+      border-left: none !important;
+      border-right: none !important;
+    }
+
+    /* Contours */
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: #e5e7eb !important;
+    }
+
+    &:hover .mdc-notched-outline__leading,
+    &:hover .mdc-notched-outline__notch,
+    &:hover .mdc-notched-outline__trailing {
+      border-color: #cfd4dc !important;
+    }
+
+    /* Icône pour les champs 1 ligne : centrée verticalement */
+    .mat-mdc-form-field-icon-prefix {
+      color: #9ca3af !important;
+      padding: 0 12px !important;
+      margin: 0 !important;
+      border: none !important;
+
+      &::before,
+      &::after {
+        display: none !important;
+        content: none !important;
+      }
+
+      .mat-icon {
+        font-size: 20px !important;
+        width: 20px !important;
+        height: 20px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+    }
+
+    .mat-mdc-form-field-infix {
+      padding-left: 0 !important;
+      border-left: none !important;
+    }
+
+    /* Focus violet */
+    &.mat-focused {
+      .mdc-notched-outline__leading {
+        border-color: #6366f1 !important;
+        border-top-width: 2px !important;
+        border-bottom-width: 2px !important;
+        border-left-width: 2px !important;
+        border-right: none !important;
+      }
+
+      .mdc-notched-outline__notch {
+        border-color: #6366f1 !important;
+        border-top-width: 2px !important;
+        border-bottom-width: 2px !important;
+        border-left: none !important;
+        border-right: none !important;
+      }
+
+      .mdc-notched-outline__trailing {
+        border-color: #6366f1 !important;
+        border-top-width: 2px !important;
+        border-bottom-width: 2px !important;
+        border-right-width: 2px !important;
+      }
+
+      .mat-mdc-form-field-icon-prefix {
+        color: #6366f1 !important;
+      }
+
+      .mdc-floating-label {
+        color: #6366f1 !important;
+      }
+    }
+
+    /* Erreur */
+    &.mat-form-field-invalid:not(.mat-focused) {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: #ef4444 !important;
+      }
+
+      .mdc-notched-outline__leading {
+        border-right: none !important;
+      }
+    }
+  }
+}
+
+/* =========================================================
+   TEXTAREA (Description) — FIX ALIGNEMENT EN HAUT
+   ========================================================= */
+.vex-textarea {
+  ::ng-deep {
+    /* Forcer l'alignement en HAUT pour le flexbox du textarea */
+    .mat-mdc-form-field-flex {
+      align-items: flex-start !important;
+    }
+
+    /* Aligner l'icône en haut au même niveau (12px) que le texte */
+    .mat-mdc-form-field-icon-prefix {
+      align-self: flex-start !important;
+      padding-top: 19px !important;
+    }
+
+    textarea.mat-mdc-input-element {
+      resize: vertical;
+      line-height: 1.45;
+      min-height: 64px;
+    }
+  }
+}
+
+/* ---------- FOOTER ---------- */
+.vex-dialog-actions {
+  display: flex !important;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px 24px !important;
+  margin: 0 !important;
+
+  .btn-cancel {
+    border-radius: 9999px !important;
+    font-weight: 500 !important;
+    color: #111827 !important;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.04) !important;
+    }
+  }
+
+  .btn-submit {
+    border-radius: 9999px !important;
+    padding: 0 20px !important;
+    height: 36px !important;
+    font-weight: 500 !important;
+    background:  #4f46e5;
+    color: #fff !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+
+    &:hover:not([disabled]) {
+      background: #4f46e5 !important;
+    }
+
+    &:disabled {
+      background: #e5e7eb !important;
+      color: #9ca3af !important;
+      box-shadow: none !important;
+    }
+  }
+}
+/* Tags sélectionnés dans le champ (chips VEX) */
+.vex-select-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 0;
+}
+
+.vex-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: #4f46e5;
+  background: rgba(99, 102, 241, 0.12);
+  white-space: nowrap;
+}

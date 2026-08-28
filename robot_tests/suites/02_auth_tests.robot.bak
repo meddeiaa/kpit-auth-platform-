@@ -5,6 +5,7 @@ Documentation     Authentication tests for KPIT Auth Platform API.
 Resource          ../resources/variables.robot
 Resource          ../resources/common_keywords.robot
 
+
 *** Test Cases ***
 
 # =============================================================
@@ -20,6 +21,7 @@ TC-101 Register New User With Valid Data Should Succeed
     Verify Response Is Success    ${response}
     Log    ✅ User created successfully
 
+
 # =============================================================
 # REGISTER - ERROR SCENARIOS
 # =============================================================
@@ -30,6 +32,7 @@ TC-102 Register With Duplicate Email Should Fail
     
     Register Should Fail With Duplicate Email    ${AHMED_EMAIL}
     Log    ✅ Duplicate email correctly rejected
+
 
 TC-103 Register With Duplicate Login Should Fail
     [Documentation]    Verify that registering with an existing login returns 409.
@@ -46,6 +49,7 @@ TC-103 Register With Duplicate Login Should Fail
     Should Be Equal As Numbers    ${response.status_code}    ${STATUS_CONFLICT}
     Should Contain     ${response.json()}[error]    Login already taken
     Log    ✅ Duplicate login correctly rejected
+
 
 TC-104 Register Without Email Should Fail
     [Documentation]    Verify that missing email field returns 400.
@@ -68,6 +72,7 @@ TC-104 Register Without Email Should Fail
     Should Contain     ${response.json()}[error]    email
     Log    ✅ Missing email correctly rejected
 
+
 TC-105 Register With Empty Body Should Fail
     [Documentation]    Verify that empty JSON body returns 400.
     [Tags]             auth    register    error    validation
@@ -84,6 +89,7 @@ TC-105 Register With Empty Body Should Fail
     Should Be Equal As Numbers    ${response.status_code}    ${STATUS_BAD_REQUEST}
     Log    ✅ Empty body correctly rejected
 
+
 # =============================================================
 # LOGIN - SUCCESS SCENARIOS
 # =============================================================
@@ -96,6 +102,7 @@ TC-201 Login With Valid Credentials Should Succeed
     Verify User Data   ${response}    ${AHMED_LOGIN}    ${AHMED_EMAIL}
     Log    ✅ Login successful for Ahmed
 
+
 # =============================================================
 # LOGIN - ERROR SCENARIOS
 # =============================================================
@@ -107,12 +114,14 @@ TC-202 Login With Wrong Password Should Fail
     Login Should Fail With Unauthorized    ${AHMED_LOGIN}    WrongPassword123
     Log    ✅ Wrong password correctly rejected
 
+
 TC-203 Login With Unknown User Should Fail
     [Documentation]    Verify that unknown username returns 401.
     [Tags]             auth    login    error    security
     
     Login Should Fail With Unauthorized    nonexistent_user_xyz    anypassword
     Log    ✅ Unknown user correctly rejected
+
 
 TC-204 Login Without Password Should Fail
     [Documentation]    Verify that missing password returns 400.
@@ -131,6 +140,7 @@ TC-204 Login Without Password Should Fail
     Should Contain     ${response.json()}[error]    required
     Log    ✅ Missing password correctly rejected
 
+
 # =============================================================
 # CASE SENSITIVITY TESTS (Demandé par l'encadrant)
 # =============================================================
@@ -142,12 +152,14 @@ TC-301 Login With Uppercase Username Should Fail
     Login Should Fail With Unauthorized    AHMED    ${AHMED_PASSWORD}
     Log    ✅ Uppercase username correctly rejected (case-sensitive)
 
+
 TC-302 Login With Uppercase Password Should Fail
     [Documentation]    Verify that passwords are case-sensitive.
     [Tags]             auth    login    case-sensitive    supervisor-request
     
     Login Should Fail With Unauthorized    ${AHMED_LOGIN}    AHMED123
     Log    ✅ Uppercase password correctly rejected (case-sensitive)
+
 
 # =============================================================
 # INPUT ORDER TESTS (Demandé par l'encadrant)
@@ -159,6 +171,7 @@ TC-401 Login With Login First Then Password Should Succeed
     
     ${response}=       Login Should Succeed    ${AHMED_LOGIN}    ${AHMED_PASSWORD}
     Log    ✅ Login OK with order: login then password
+
 
 TC-402 Login With Password First Then Login Should Succeed
     [Documentation]    Verify that JSON order doesn't matter (password first).
@@ -178,6 +191,15 @@ TC-402 Login With Password First Then Login Should Succeed
     
     Should Be Equal As Numbers    ${response.status_code}    ${STATUS_OK}
     Log    ✅ Login OK with order: password then login
+
+TC-901 My Auto Generated Test
+    [Documentation]    This is a test created via Swagger
+    [Tags]             custom    smoke
+    
+    # Auto-generated steps
+    Log    ✅ This is an auto-generated test case
+    Sleep    1s    reason=Simulate test execution
+
 
 TC-902 Verify Login with Empty Inputs
     [Documentation]    Test that sending empty login/password blocks request

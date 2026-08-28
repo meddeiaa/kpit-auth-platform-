@@ -1,86 +1,393 @@
-.welcome-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-  padding: 20px;
+/* =========================================================
+   PAGE DASHBOARD VEX
+   ========================================================= */
+:host {
+  display: block;
+  min-height: 100%;
+  background: linear-gradient(180deg, #e8eaf6 0%, #eef0f8 40%, #f3f4f8 100%);
 }
 
-.welcome-card {
-  width: 100%;
-  max-width: 500px;
-  padding: 30px;
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
+.welcome-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
 }
 
-.welcome-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 22px;
-  color: #333;
+/* --- HEADER --- */
+.page-header {
+  margin-bottom: 24px;
   
-  .success-icon {
-    color: #43e97b;
-    font-size: 32px;
-    width: 32px;
-    height: 32px;
+  .page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.02em;
+    font-family: var(--vex-font, 'Inter', sans-serif);
+  }
+  
+  .breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #64748b;
+    
+    .icon-home { font-size: 16px; width: 16px; height: 16px; color: #94a3b8; }
+    .dot { color: #cbd5e1; font-size: 14px; }
+    .crumb { color: #64748b; }
+    .current { color: #4f46e5; font-weight: 500; }
   }
 }
 
-.welcome-content {
-  margin-top: 30px;
+/* --- VEX CARD (Base pour toutes les cartes) --- */
+.vex-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px -2px rgba(17, 24, 39, 0.05), 0 2px 6px -1px rgba(17, 24, 39, 0.03);
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  position: relative;
+  overflow: hidden;
 }
 
-.user-info {
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 0;
+  
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f172a;
+  }
+  
+  mat-icon { color: #94a3b8; }
+}
+
+/* --- GRID LAYOUT --- */
+.dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* --- ROW 1 : BANNER & KPIS --- */
+.dashboard-top-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 24px;
+}
+
+/* =========================================================
+   BANNIÈRE VEX (Exactement conforme à "Good Job, David!")
+   ========================================================= */
+.banner-card {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  border-radius: 12px;
+  padding: 28px 32px;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.25);
+
+  .banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .banner-text {
+    flex: 1;
+
+    /* Le Titre : Taille 24px, Poids 600 uniforme, Tracking serré VEX */
+    .banner-title {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: #ffffff;
+      letter-spacing: -0.025em; /* Le secret du style VEX */
+      line-height: 1.25;
+      margin: 0 0 6px 0;
+    }
+
+    /* Le Sous-titre : Opacité douce et typo propre */
+    .banner-subtitle {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.82);
+      margin: 0;
+      line-height: 1.5;
+
+      strong {
+        color: #ffffff;
+        font-weight: 600;
+      }
+    }
+  }
+
+  /* Le Bouton Blanc VEX */
+  .banner-actions {
+    flex-shrink: 0;
+
+    .btn-vex-white {
+      background-color: #ffffff !important;
+      color: #4f46e5 !important;
+      border-radius: 9999px !important;
+      height: 42px !important;
+      padding: 0 22px !important;
+      font-weight: 600 !important;
+      font-size: 13.5px !important;
+      letter-spacing: -0.01em;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+      white-space: nowrap !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+
+      mat-icon {
+        font-size: 18px !important;
+        width: 18px !important;
+        height: 18px !important;
+        margin: 0 !important;
+      }
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16) !important;
+      }
+    }
+  }
+}
+
+.kpi-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  
+  .kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  
+  .kpi-icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    mat-icon { font-size: 20px; width: 20px; height: 20px; }
+    
+    &.icon-indigo { background: rgba(99, 102, 241, 0.1); color: #4f46e5; }
+    &.icon-amber { background: rgba(245, 158, 11, 0.1); color: #d97706; }
+  }
+  
+  .kpi-label {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 8px;
+    font-weight: 500;
+  }
+  
+  .kpi-sparkline {
+    margin-top: 16px;
+    height: 40px;
+    width: 100%;
+    svg { width: 100%; height: 100%; }
+  }
+}
+
+/* --- ROW 2 : GRAPHIQUE --- */
+.dashboard-middle-row { width: 100%; }
+
+.chart-card {
+  .chart-content {
+    padding: 0 24px 24px;
+  }
+  
+  .chart-stats {
+    margin-top: 16px;
+    margin-bottom: 24px;
+    
+    .main-stat {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      
+      .value { font-size: 40px; font-weight: 700; color: #0f172a; line-height: 1; letter-spacing: -0.02em; }
+      .label { font-size: 14px; color: #64748b; font-weight: 500; }
+    }
+    
+    .trend-badge {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 8px;
+      padding: 4px 10px 4px 6px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      
+      &.positive { background: #dcfce7; color: #16a34a; }
+      mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    }
+  }
+  
+  .main-chart-svg {
+    width: 100%;
+    height: 250px;
+    margin-top: 20px;
+    svg { width: 100%; height: 100%; }
+  }
+}
+
+/* --- ROW 3 : INFO & ACTIONS --- */
+.dashboard-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr; /* 1 tiers pour Session, 2 tiers pour Actions */
+  gap: 24px;
+}
+
+.info-list {
+  padding: 16px 24px 24px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.info-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 15px;
-  padding: 15px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
   
-  mat-icon {
-    color: #667eea;
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
-    margin-top: 2px;
-  }
-  
-  strong {
-    display: block;
-    color: #333;
-    font-size: 14px;
-    margin-bottom: 4px;
-  }
-  
-  p {
-    margin: 0;
-    color: #666;
-    font-size: 15px;
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    
+    .info-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      
+      mat-icon { font-size: 20px; width: 20px; height: 20px; }
+    }
+    
+    .info-text {
+      display: flex;
+      flex-direction: column;
+      
+      .label { font-size: 12px; color: #64748b; font-weight: 500; margin-bottom: 2px; }
+      .value { font-size: 14px; font-weight: 600; color: #0f172a; }
+    }
   }
 }
 
-.welcome-actions {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
+.action-list {
+  padding: 16px 24px 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  
+  .action-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #ffffff;
+    
+    &:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 12px -2px rgba(17, 24, 39, 0.05);
+      transform: translateY(-2px);
+      
+      .arrow { color: #4f46e5; transform: translateX(2px); }
+    }
+    
+    .action-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      mat-icon { font-size: 22px; width: 22px; height: 22px; }
+      
+      &.bg-indigo { background: rgba(99, 102, 241, 0.1); color: #4f46e5; }
+      &.bg-teal { background: rgba(20, 184, 166, 0.1); color: #0d9488; }
+      &.bg-red { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+    }
+    
+    .action-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      
+      strong { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
+      span { font-size: 12px; color: #64748b; line-height: 1.4; }
+      .text-red { color: #dc2626; }
+    }
+    
+    .arrow { color: #cbd5e1; transition: all 0.2s; }
+    
+    &.action-logout:hover {
+      border-color: #fca5a5;
+      .arrow { color: #dc2626; }
+    }
+  }
 }
 
-.logout-button {
-  height: 48px;
-  font-size: 16px;
-  padding: 0 30px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* --- RESPONSIVE --- */
+@media (max-width: 1024px) {
+  .dashboard-top-row { grid-template-columns: 1fr; }
+  .dashboard-bottom-row { grid-template-columns: 1fr; }
+}
+.real-stats-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  
+  .stat-block {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    
+    mat-icon { font-size: 32px; width: 32px; height: 32px; }
+    
+    .text {
+      display: flex;
+      flex-direction: column;
+      
+      .val { font-size: 16px; font-weight: 600; color: #0f172a; }
+      .lbl { font-size: 13px; color: #64748b; margin-top: 4px; }
+    }
+    
+    &.pending-history {
+      background: #ffffff;
+      border: 1px dashed #cbd5e1;
+      mat-icon { color: #94a3b8; }
+    }
+  }
 }

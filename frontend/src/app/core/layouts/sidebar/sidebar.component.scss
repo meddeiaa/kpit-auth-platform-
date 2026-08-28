@@ -1,0 +1,319 @@
+.vex-sidebar {
+  width: var(--vex-sidebar-width);
+  height: 100vh;
+  background: var(--vex-sidebar-bg);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  overflow: hidden;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+  box-shadow: 0px 8px 10px -5px rgba(0, 0, 0, 0.2),
+              0px 16px 24px 2px rgba(0, 0, 0, 0.14);
+  
+  &.collapsed {
+    width: var(--vex-sidebar-collapsed-width);
+  }
+}
+
+// Toolbar / Logo
+.sidebar-toolbar {
+  height: var(--vex-toolbar-height);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+  
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    
+    mat-icon {
+      color: white;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+  
+  .logo-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.5px;
+  }
+}
+
+// Navigation
+.sidebar-nav {
+  flex: 1;
+  padding: 24px 12px;
+  overflow-y: auto;
+  
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+  }
+}
+
+.nav-section {
+  margin-bottom: 24px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.nav-subheading {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vex-sidebar-subheading);
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--vex-sidebar-item-color);
+  transition: all 0.2s ease;
+  text-decoration: none;
+  min-height: 40px;
+  margin-bottom: 4px;
+  border-left: 3px solid transparent; /* Prépare l'indicateur actif */
+  
+  .nav-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: #94a3b8; /* Gris clair par défaut */
+    transition: color 0.2s ease;
+  }
+  
+  .nav-label {
+    font-size: 14px;
+    font-weight: 500;
+    flex: 1;
+  }
+  
+  &:hover {
+    background: var(--vex-sidebar-item-hover);
+    color: #ffffff;
+    
+    .nav-icon {
+      color: #ffffff;
+    }
+  }
+  
+  /* État Actif Pro : Indicateur vertical à gauche */
+  &.active {
+    background: var(--vex-sidebar-item-active-bg);
+    color: #ffffff;
+    border-left-color: var(--vex-primary);
+    border-radius: 0 6px 6px 0;
+    
+    .nav-icon {
+      color: var(--vex-primary); /* L'icône prend la couleur primaire */
+    }
+    .nav-label {
+      font-weight: 600;
+    }
+  }
+}
+
+// User Section
+.sidebar-user {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+  
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  
+  .user-info {
+    flex: 1;
+    min-width: 0;
+    
+    .user-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: white;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .user-role {
+      font-size: 12px;
+      color: #9ca3af;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  
+  .user-dropdown {
+    color: #9ca3af;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// Collapsed state
+.vex-sidebar.collapsed {
+  .nav-item {
+    justify-content: center;
+    padding: 10px;
+    
+    .nav-label,
+    .nav-badge {
+      display: none;
+    }
+  }
+  
+  .nav-subheading,
+  .sidebar-user {
+    display: none;
+  }
+  
+  .sidebar-toolbar {
+    padding: 0 12px;
+    justify-content: center;
+  }
+}
+/* Ajout de la couleur du badge SOON */
+.badge-slate {
+  background: #334155; /* Slate 700 */
+  color: #f8fafc;
+}
+
+/* Rendre les éléments sans route visuellement inactifs */
+.nav-item.disabled-nav {
+  opacity: 0.5;
+  cursor: not-allowed;
+  
+  &:hover {
+    background: transparent !important;
+    color: var(--vex-sidebar-item-color) !important;
+    
+    .nav-icon {
+      color: #94a3b8 !important;
+    }
+  }
+}
+/* Badge SOON */
+.nav-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &.badge-primary {
+    background: #4f46e5;
+    color: #ffffff;
+  }
+
+  &.badge-slate {
+    background: #334155;
+    color: #e2e8f0;
+  }
+}
+
+.nav-item.disabled-nav {
+  opacity: 0.55;
+  cursor: not-allowed;
+
+  &:hover {
+    background: transparent !important;
+    color: var(--vex-sidebar-item-color) !important;
+
+    .nav-icon {
+      color: #94a3b8 !important;
+    }
+  }
+}
+
+/* =========================================================
+   MOBILE : la sidebar sort de l'écran (transform SUR .vex-sidebar)
+   ========================================================= */
+@media (max-width: 992px) {
+  .vex-sidebar {
+    width: 280px !important;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: none;
+
+    /* Ouverte via le hamburger */
+    &.mobile-open {
+      transform: translateX(0);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+    }
+
+    /* Sur mobile on n'utilise PAS le mode collapsed étroit */
+    &.collapsed {
+      width: 280px !important;
+
+      .nav-label,
+      .nav-badge,
+      .nav-subheading,
+      .sidebar-user,
+      .logo-title {
+        display: initial;
+      }
+
+      .nav-item {
+        justify-content: flex-start;
+        padding: 10px 12px;
+      }
+
+      .sidebar-toolbar {
+        padding: 0 24px;
+        justify-content: flex-start;
+      }
+    }
+  }
+}

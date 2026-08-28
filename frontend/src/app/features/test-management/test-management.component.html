@@ -1,0 +1,352 @@
+<div class="test-management-page" [class.full-width]="viewMode === 'fullwidth'">
+  
+  <!-- Page Header VEX -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Test Cases</h1>
+      <div class="breadcrumbs">
+        <mat-icon class="icon-home">home</mat-icon>
+        <span class="dot">•</span>
+        <span class="crumb" (click)="goToWelcome()">Testing</span>
+        <span class="dot">•</span>
+        <span class="crumb current">Test Cases</span>
+      </div>
+    </div>
+    
+    <div class="header-right">
+      <mat-button-toggle-group [(value)]="viewMode" class="vex-view-toggle">
+        <mat-button-toggle value="boxed">Boxed</mat-button-toggle>
+        <mat-button-toggle value="fullwidth">Full-Width</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+  </div>
+
+  <!-- Main Card -->
+  <div class="main-card">
+    
+    <!-- Card Toolbar VEX -->
+    <div class="card-toolbar">
+      <h2 class="toolbar-title">Test Cases</h2>
+      
+      <div class="search-wrapper">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input type="text" 
+               placeholder="Search..."
+               [(ngModel)]="searchTerm"
+               (ngModelChange)="applyFilters()">
+      </div>
+      
+      <span class="flex-1"></span>
+      
+      <button mat-icon-button 
+              [matMenuTriggerFor]="filterMenu"
+              matTooltip="Filter Options"
+              class="filter-btn">
+        <mat-icon [class.filter-active]="hasActiveFilters()">filter_list</mat-icon>
+      </button>
+
+      <button mat-mini-fab 
+              color="primary"
+              (click)="openAddTestDialog()" 
+              matTooltip="Add Test Case" 
+              class="vex-fab-add">
+        <mat-icon>add</mat-icon>
+      </button>
+
+      <button mat-flat-button 
+              color="primary"
+              [matMenuTriggerFor]="runMenu"
+              [disabled]="isRunning"
+              class="vex-pill-run">
+        <mat-icon>play_arrow</mat-icon>
+        <span>Run Tests</span>
+        <mat-icon class="dropdown-icon">arrow_drop_down</mat-icon>
+      </button>
+
+      <!-- Menus -->
+      <mat-menu #filterMenu="matMenu" class="filter-menu-panel" xPosition="before">
+        <div class="filter-menu" (click)="$event.stopPropagation()">
+          <div class="filter-header">
+            <span>Filters</span>
+            <button mat-button color="warn" (click)="clearFilters()" *ngIf="hasActiveFilters()">Clear All</button>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="filter-section">
+            <label class="filter-label">Suite</label>
+            <mat-form-field appearance="outline" class="filter-select compact-field" subscriptSizing="dynamic">
+              <mat-select [(value)]="selectedSuite" (selectionChange)="applyFilters()">
+                <mat-option value="all">All Suites</mat-option>
+                <mat-option *ngFor="let suite of suites" [value]="suite">{{ suite }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div class="filter-section">
+            <label class="filter-label">Status</label>
+            <mat-form-field appearance="outline" class="filter-select compact-field" subscriptSizing="dynamic">
+              <mat-select [(value)]="selectedStatus" (selectionChange)="applyFilters()">
+                <mat-option value="all">All Status</mat-option>
+                <mat-option value="passed">Passed</mat-option>
+                <mat-option value="failed">Failed</mat-option>
+                <mat-option value="not-run">Not Run</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div class="filter-section">
+            <label class="filter-label">Tags</label>
+            <mat-form-field appearance="outline" class="filter-select compact-field" subscriptSizing="dynamic">
+              <mat-select [(value)]="selectedTags" (selectionChange)="applyFilters()" multiple panelClass="vex-select-panel">
+                <mat-select-trigger>
+                  <span class="vex-select-chips" *ngIf="selectedTags.length; else emptyTags">
+                    <span class="vex-chip" *ngFor="let tag of selectedTags">{{ tag }}</span>
+                  </span>
+                  <ng-template #emptyTags>Select tags...</ng-template>
+                </mat-select-trigger>
+                <mat-option *ngFor="let tag of availableTags" [value]="tag">{{ tag }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+      </mat-menu>
+
+      <mat-menu #runMenu="matMenu" xPosition="before">
+        <button mat-menu-item (click)="runSelectedTests()" [disabled]="getSelectedCount() === 0">
+          <mat-icon color="primary">play_circle</mat-icon>
+          <span>Run Selected ({{ getSelectedCount() }})</span>
+        </button>
+        <button mat-menu-item (click)="runAllTests()" [disabled]="filteredTestCases.length === 0">
+          <mat-icon color="accent">playlist_play</mat-icon>
+          <span>Run Displayed Tests ({{ filteredTestCases.length }})</span>
+        </button>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="runFailedTests()">
+          <mat-icon color="warn">refresh</mat-icon>
+          <span>Re-run Failed Tests</span>
+        </button>
+      </mat-menu>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper">
+      <table class="vex-table">
+        <thead>
+          <tr>
+            <th class="col-checkbox">
+              <mat-checkbox [checked]="areAllFilteredSelected()" (change)="toggleSelectAll()" color="primary"></mat-checkbox>
+            </th>
+            <th class="col-image"></th>
+            <th class="col-id">ID</th>
+            <th class="col-name">Test Name</th>
+            <th class="col-actions">Actions</th>
+            <th class="col-suite">Suite</th>
+            <th class="col-steps">Steps</th>
+            <th class="col-labels">Tags</th>
+            <th class="col-menu"></th>
+          </tr>
+        </thead>
+        
+        <tbody>
+          <tr *ngFor="let test of pagedTestCases" class="table-row" [class.row-selected]="test.selected">
+            <td class="col-checkbox">
+              <mat-checkbox [(ngModel)]="test.selected" color="primary"></mat-checkbox>
+            </td>
+            <td class="col-image">
+              <div class="test-avatar" 
+                   [class.avatar-pass]="test.lastStatus === 'PASS'" 
+                   [class.avatar-fail]="test.lastStatus === 'FAIL'" 
+                   [class.avatar-pending]="!test.lastStatus">
+                <mat-icon *ngIf="test.lastStatus">{{ getStatusIcon(test.lastStatus) }}</mat-icon>
+                <span *ngIf="!test.lastStatus" class="pending-dash"></span>
+              </div>
+            </td>
+            <td class="col-id">
+              <span class="test-id-badge">{{ test.id }}</span>
+            </td>
+            <td class="col-name font-medium">
+              <div class="test-name-cell">
+                <div class="test-title">{{ test.name }}</div>
+                <div class="test-doc" *ngIf="test.documentation">{{ test.documentation }}</div>
+              </div>
+            </td>
+            <td class="col-actions">
+              <div class="action-buttons">
+                <a class="action-btn action-primary" (click)="runSingleTest(test)" matTooltip="Run Test">
+                  <mat-icon>play_arrow</mat-icon>
+                </a>
+                <a class="action-btn action-teal" (click)="openEditTestDialog(test)" matTooltip="Edit Test">
+                  <mat-icon>edit</mat-icon>
+                </a>
+                <a class="action-btn action-red" (click)="deleteTest(test)" matTooltip="Delete Test">
+                  <mat-icon>delete</mat-icon>
+                </a>
+              </div>
+            </td>
+            <td class="col-suite text-secondary">{{ test.file_name }}</td>
+            <td class="col-steps text-secondary">
+              <span class="steps-count">{{ test.steps_count }}</span>
+            </td>
+            <td class="col-labels">
+              <div class="labels-container">
+                <div *ngFor="let tag of test.tags.slice(0, 3)" class="label" [ngClass]="getTagClass(tag)">
+                  {{ tag }}
+                </div>
+                <div class="label-more" *ngIf="test.tags.length > 3">+{{ test.tags.length - 3 }}</div>
+              </div>
+            </td>
+            <td class="col-menu">
+              <button mat-icon-button 
+                      [matMenuTriggerFor]="rowMenu" 
+                      class="row-menu-btn"
+                      matTooltip="More options">
+                <mat-icon>more_horiz</mat-icon>
+              </button>
+
+              <mat-menu #rowMenu="matMenu" xPosition="before">
+                <button mat-menu-item (click)="runSingleTest(test)">
+                  <mat-icon color="primary">play_arrow</mat-icon>
+                  <span>Run Test</span>
+                </button>
+                <button mat-menu-item (click)="openEditTestDialog(test)">
+                  <mat-icon color="teal">edit</mat-icon>
+                  <span>Edit</span>
+                </button>
+                <mat-divider></mat-divider>
+                <button mat-menu-item (click)="deleteTest(test)">
+                  <mat-icon color="warn">delete</mat-icon>
+                  <span>Delete</span>
+                </button>
+              </mat-menu>
+            </td>
+          </tr>
+          
+          <tr *ngIf="pagedTestCases.length === 0 && !isLoading">
+            <td colspan="9" class="empty-state">
+              <mat-icon>search_off</mat-icon>
+              <h3>No tests found</h3>
+              <p>Try adjusting your filters</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginator VEX -->
+    <mat-paginator class="vex-paginator"
+                   [length]="filteredTestCases.length"
+                   [pageSize]="pageSize"
+                   [pageSizeOptions]="[10, 25, 50, 100]"
+                   (page)="onPageChange($event)">
+    </mat-paginator>
+
+  </div>
+
+  <!-- Loading Overlay Pro -->
+  <div class="loading-overlay" *ngIf="isRunning">
+    <div class="loading-content-pro">
+      
+      <div class="loading-header">
+        <!-- Spinner pendant l'exécution -->
+        <div class="loading-spinner-wrapper" *ngIf="!isJobCancelled && currentJob && (currentJob.status === 'starting' || currentJob.status === 'running')">
+          <mat-spinner diameter="40" color="primary"></mat-spinner>
+        </div>
+
+        <!-- Icônes de fin / annulation -->
+        <div class="completion-icon" *ngIf="isJobCancelled || (currentJob && (currentJob.status === 'completed' || currentJob.status === 'failed'))">
+          <!-- Icône d'annulation ROUGE UNIQUE -->
+          <mat-icon *ngIf="isJobCancelled" class="icon-cancelled">block</mat-icon>
+          <!-- Succès -->
+          <mat-icon *ngIf="!isJobCancelled && currentJob && currentJob.failed === 0" class="icon-success">check_circle</mat-icon>
+          <!-- Échec d'assertions -->
+          <mat-icon *ngIf="!isJobCancelled && currentJob && currentJob.failed > 0" class="icon-partial">warning</mat-icon>
+        </div>
+        
+        <!-- Titres selon l'état -->
+        <h3 *ngIf="!isJobCancelled && currentJob && (currentJob.status === 'starting' || currentJob.status === 'running')">Running Tests</h3>
+        <h3 *ngIf="isJobCancelled">Execution Cancelled</h3>
+        <h3 *ngIf="!isJobCancelled && currentJob && currentJob.status === 'completed' && currentJob.failed === 0">All Tests Passed</h3>
+        <h3 *ngIf="!isJobCancelled && currentJob && ((currentJob.status === 'completed' && currentJob.failed > 0) || (currentJob.status === 'failed'))">Tests Completed</h3>
+        
+        <!-- Sous-titres dynamiques -->
+        <p class="loading-subtitle" *ngIf="!isJobCancelled && currentJob && (currentJob.status === 'starting' || currentJob.status === 'running') && currentJob.current_test">
+          {{ currentJob.current_test }}
+        </p>
+        <p class="loading-subtitle subtitle-cancelled" *ngIf="isJobCancelled">
+          Test process was stopped by user.
+        </p>
+        <p class="loading-subtitle" *ngIf="!isJobCancelled && currentJob && (currentJob.status === 'completed' || currentJob.status === 'failed')">
+          Finalizing results...
+        </p>
+      </div>
+      
+      <div class="progress-section" *ngIf="currentJob">
+        <div class="progress-header">
+          <span class="progress-label">Progress</span>
+          <span class="progress-value">{{ currentJob.completed }} / {{ currentJob.total }} tests</span>
+        </div>
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" [style.width.%]="getProgressPercent()"></div>
+          </div>
+          <span class="progress-percent">{{ getProgressPercent() }}%</span>
+        </div>
+        <div class="stats-row">
+          <div class="stat-item">
+            <mat-icon class="stat-icon-time">schedule</mat-icon>
+            <span class="stat-label">Elapsed</span>
+            <span class="stat-value">{{ formatElapsed() }}</span>
+          </div>
+          <div class="stat-item stat-passed">
+            <mat-icon>check_circle</mat-icon>
+            <span class="stat-label">Passed</span>
+            <span class="stat-value">{{ currentJob.passed }}</span>
+          </div>
+          <div class="stat-item stat-failed">
+            <mat-icon>cancel</mat-icon>
+            <span class="stat-label">Failed</span>
+            <span class="stat-value">{{ currentJob.failed }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="logs-section" *ngIf="currentJob && currentJob.logs.length > 0">
+        <div class="logs-header">
+          <mat-icon>terminal</mat-icon>
+          <span>Live Logs</span>
+        </div>
+        <div class="logs-container">
+          <div *ngFor="let log of currentJob.logs.slice(-10)" 
+               class="log-line"
+               [class.log-pass]="log.message.includes('PASS')"
+               [class.log-fail]="log.message.includes('FAIL')"
+               [class.log-info]="log.message.includes('Running')">
+            <span class="log-time">{{ log.timestamp }}</span>
+            <span class="log-message">{{ log.message }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Footer pendant l'exécution : Bouton Stop -->
+      <div class="loading-footer" *ngIf="!isJobCancelled && currentJob && (currentJob.status === 'starting' || currentJob.status === 'running')">
+        <div class="footer-info">
+          <mat-icon>info</mat-icon>
+          <span>Tests are running in the background.</span>
+        </div>
+        
+        <button mat-stroked-button class="btn-cancel-execution" (click)="cancelTests()">
+          <mat-icon>stop</mat-icon> Stop
+        </button>
+      </div>
+
+      <!-- Actions de fin : View Report (Bleu VEX) & Close -->
+      <div class="completion-actions" *ngIf="isJobCancelled || (currentJob && (currentJob.status === 'completed' || currentJob.status === 'failed'))">
+        <button mat-flat-button (click)="openReport()" class="report-btn">
+          <mat-icon>description</mat-icon>
+          View Report
+        </button>
+        <button mat-stroked-button (click)="closeOverlay()" class="close-btn">
+          <mat-icon>close</mat-icon>
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

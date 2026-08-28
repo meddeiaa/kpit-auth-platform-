@@ -1,0 +1,65 @@
+.vex-toolbar {
+  height: var(--vex-toolbar-height);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--vex-border);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: var(--vex-sidebar-width);
+  right: 0;
+  z-index: 50;
+  transition: left 0.3s ease;
+}
+
+.flex-1 { flex: 1; }
+
+.divider-vertical {
+  width: 1px;
+  height: 24px;
+  background: #e2e8f0;
+  margin: 0 8px;
+}
+
+.header-icon-btn {
+  color: var(--vex-text-icon) !important;
+
+  &:hover {
+    color: var(--vex-text) !important;
+    background: #f1f5f9 !important;
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.user-btn {
+  padding: 0 !important;
+  width: 36px !important;
+  height: 36px !important;
+}
+
+.user-avatar-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--vex-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Mobile : header pleine largeur */
+@media (max-width: 992px) {
+  .vex-toolbar {
+    left: 0 !important;
+  }
+}

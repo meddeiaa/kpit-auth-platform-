@@ -1,0 +1,297 @@
+[
+  {
+    "id": "TC-001",
+    "name": "TC-001 API Health Check Should Return Healthy Status",
+    "documentation": "Verify that the health endpoint returns a 200 status and confirms the API is running properly.",
+    "tags": [
+      "health",
+      "smoke",
+      "api"
+    ],
+    "steps_count": 7,
+    "file_name": "01_health_tests.robot"
+  },
+  {
+    "id": "TC-002",
+    "name": "TC-002 Root Endpoint Should Return Welcome Message",
+    "documentation": "Verify that the root endpoint returns a welcome message and confirms the API version.",
+    "tags": [
+      "health",
+      "api"
+    ],
+    "steps_count": 4,
+    "file_name": "01_health_tests.robot"
+  },
+  {
+    "id": "TC-101",
+    "name": "TC-101 Register New User With Valid Data Should Succeed",
+    "documentation": "Verify that a new user can be created with all valid fields.",
+    "tags": [
+      "auth",
+      "register",
+      "success",
+      "smoke"
+    ],
+    "steps_count": 4,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-102",
+    "name": "TC-102 Register With Duplicate Email Should Fail",
+    "documentation": "Verify that registering with an existing email returns 409.",
+    "tags": [
+      "auth",
+      "register",
+      "error",
+      "regression"
+    ],
+    "steps_count": 2,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-103",
+    "name": "TC-103 Register With Duplicate Login Should Fail",
+    "documentation": "Verify that registering with an existing login returns 409.",
+    "tags": [
+      "auth",
+      "register",
+      "error",
+      "regression"
+    ],
+    "steps_count": 10,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-104",
+    "name": "TC-104 Register Without Email Should Fail",
+    "documentation": "Verify that missing email field returns 400.",
+    "tags": [
+      "auth",
+      "register",
+      "error",
+      "validation"
+    ],
+    "steps_count": 14,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-105",
+    "name": "TC-105 Register With Empty Body Should Fail",
+    "documentation": "Verify that empty JSON body returns 400.",
+    "tags": [
+      "auth",
+      "register",
+      "error",
+      "validation"
+    ],
+    "steps_count": 9,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-201",
+    "name": "TC-201 Login With Valid Credentials Should Succeed",
+    "documentation": "Verify that a user can login with correct credentials.",
+    "tags": [
+      "auth",
+      "login",
+      "success",
+      "smoke"
+    ],
+    "steps_count": 3,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-202",
+    "name": "TC-202 Login With Wrong Password Should Fail",
+    "documentation": "Verify that wrong password returns 401.",
+    "tags": [
+      "auth",
+      "login",
+      "error",
+      "security"
+    ],
+    "steps_count": 2,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-203",
+    "name": "TC-203 Login With Unknown User Should Fail",
+    "documentation": "Verify that unknown username returns 401.",
+    "tags": [
+      "auth",
+      "login",
+      "error",
+      "security"
+    ],
+    "steps_count": 2,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-204",
+    "name": "TC-204 Login Without Password Should Fail",
+    "documentation": "Verify that missing password returns 400.",
+    "tags": [
+      "auth",
+      "login",
+      "error",
+      "validation"
+    ],
+    "steps_count": 10,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-301",
+    "name": "TC-301 Login With Uppercase Username Should Fail",
+    "documentation": "Verify that usernames are case-sensitive.",
+    "tags": [
+      "auth",
+      "login",
+      "case-sensitive",
+      "supervisor-request"
+    ],
+    "steps_count": 2,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-302",
+    "name": "TC-302 Login With Uppercase Password Should Fail",
+    "documentation": "Verify that passwords are case-sensitive.",
+    "tags": [
+      "auth",
+      "login",
+      "case-sensitive",
+      "supervisor-request"
+    ],
+    "steps_count": 2,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-401",
+    "name": "TC-401 Login With Login First Then Password Should Succeed",
+    "documentation": "Verify that JSON order doesn't matter (login first).",
+    "tags": [
+      "auth",
+      "login",
+      "input-order",
+      "supervisor-request"
+    ],
+    "steps_count": 2,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-402",
+    "name": "TC-402 Login With Password First Then Login Should Succeed",
+    "documentation": "Verify that JSON order doesn't matter (password first).",
+    "tags": [
+      "auth",
+      "login",
+      "input-order",
+      "supervisor-request"
+    ],
+    "steps_count": 11,
+    "file_name": "02_auth_tests.robot"
+  },
+  {
+    "id": "TC-501",
+    "name": "TC-501 Login Page Should Display All Required Elements",
+    "documentation": "Verify that the login page has all necessary elements.",
+    "tags": [
+      "ui",
+      "login",
+      "smoke"
+    ],
+    "steps_count": 6,
+    "file_name": "03_ui_tests.robot"
+  },
+  {
+    "id": "TC-502",
+    "name": "TC-502 User Can Login With Valid Credentials",
+    "documentation": "Verify that a user can login successfully with valid credentials.",
+    "tags": [
+      "ui",
+      "login",
+      "success",
+      "smoke",
+      "critical"
+    ],
+    "steps_count": 5,
+    "file_name": "03_ui_tests.robot"
+  },
+  {
+    "id": "TC-503",
+    "name": "TC-503 Login Should Fail With Wrong Password",
+    "documentation": "Verify that login fails when password is incorrect.",
+    "tags": [
+      "ui",
+      "login",
+      "error",
+      "security"
+    ],
+    "steps_count": 3,
+    "file_name": "03_ui_tests.robot"
+  },
+  {
+    "id": "TC-504",
+    "name": "TC-504 Login Should Fail With Unknown User",
+    "documentation": "Verify that login fails when username doesn't exist.",
+    "tags": [
+      "ui",
+      "login",
+      "error",
+      "security"
+    ],
+    "steps_count": 3,
+    "file_name": "03_ui_tests.robot"
+  },
+  {
+    "id": "TC-601",
+    "name": "TC-601 User Can Logout Successfully",
+    "documentation": "Verify that a logged-in user can logout.",
+    "tags": [
+      "ui",
+      "logout",
+      "smoke"
+    ],
+    "steps_count": 4,
+    "file_name": "03_ui_tests.robot"
+  },
+  {
+    "id": "TC-701",
+    "name": "TC-701 Complete User Journey Login-Welcome-Logout",
+    "documentation": "Test the complete user journey from login to logout.",
+    "tags": [
+      "ui",
+      "e2e",
+      "smoke",
+      "critical"
+    ],
+    "steps_count": 9,
+    "file_name": "03_ui_tests.robot"
+  },
+  {
+    "id": "TC-801",
+    "name": "TC-801 Sara (Tester Role) Can Login",
+    "documentation": "Verify that Sara (with tester role) can login.",
+    "tags": [
+      "ui",
+      "login",
+      "roles",
+      "regression"
+    ],
+    "steps_count": 4,
+    "file_name": "03_ui_tests.robot"
+  },
+  {
+    "id": "TC-802",
+    "name": "TC-802 Ali (Viewer Role) Can Login",
+    "documentation": "Verify that Ali (with viewer role) can login.",
+    "tags": [
+      "ui",
+      "login",
+      "roles",
+      "regression"
+    ],
+    "steps_count": 4,
+    "file_name": "03_ui_tests.robot"
+  }
+]

@@ -1,0 +1,51 @@
+<aside class="vex-sidebar"
+       [class.collapsed]="collapsed"
+       [class.mobile-open]="mobileOpen">
+
+  <div class="sidebar-toolbar">
+    <div class="logo-icon">
+      <mat-icon>fact_check</mat-icon>
+    </div>
+    <h2 class="logo-title" *ngIf="!collapsed || mobileOpen">KPIT</h2>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div *ngFor="let section of navigationSections" class="nav-section">
+
+      <div class="nav-subheading" *ngIf="!collapsed || mobileOpen">
+        {{ section.title }}
+      </div>
+
+      <a *ngFor="let item of section.items"
+         class="nav-item"
+         [class.active]="isRouteActive(item.route)"
+         [class.disabled-nav]="!item.route"
+         (click)="navigateTo(item)"
+         matRipple
+         [matRippleDisabled]="!item.route"
+         matRippleColor="rgba(255, 255, 255, 0.1)">
+
+        <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+
+        <span class="nav-label" *ngIf="!collapsed || mobileOpen">
+          {{ item.label }}
+        </span>
+
+        <span class="nav-badge"
+              *ngIf="(!collapsed || mobileOpen) && item.badge"
+              [ngClass]="'badge-' + item.badge.color">
+          {{ item.badge.text }}
+        </span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="sidebar-user" *ngIf="!collapsed || mobileOpen">
+    <div class="user-avatar">KM</div>
+    <div class="user-info">
+      <div class="user-name">Khammar Mohamed</div>
+      <div class="user-role">Test Manager</div>
+    </div>
+    <mat-icon class="user-dropdown">arrow_drop_down</mat-icon>
+  </div>
+</aside>

@@ -1,0 +1,23 @@
+<div class="vex-layout"
+     [class.sidebar-collapsed]="sidebarCollapsed"
+     [class.mobile-open]="isMobileMenuOpen">
+
+  <!-- Fond sombre cliquable (mobile uniquement) -->
+  <div class="sidebar-backdrop"
+       *ngIf="isMobileMenuOpen"
+       (click)="closeMobileMenu()"></div>
+
+  <app-sidebar
+    [collapsed]="sidebarCollapsed"
+    [mobileOpen]="isMobileMenuOpen">
+  </app-sidebar>
+
+  <div class="main-wrapper">
+    <app-header (menuToggle)="toggleMenu()"></app-header>
+
+    <main class="vex-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+
+</div>

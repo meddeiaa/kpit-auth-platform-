@@ -1,0 +1,56 @@
+.vex-layout {
+  min-height: 100vh;
+  background: var(--vex-background);
+  width: 100%;
+}
+
+.main-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.vex-content {
+  margin-left: var(--vex-sidebar-width);
+  margin-top: var(--vex-toolbar-height);
+  padding: 24px;
+  min-height: calc(100vh - var(--vex-toolbar-height));
+  transition: margin-left 0.3s ease;
+  box-sizing: border-box;
+}
+
+/* Desktop : sidebar réduite */
+.sidebar-collapsed {
+  .vex-content {
+    margin-left: var(--vex-sidebar-collapsed-width);
+  }
+
+  ::ng-deep .vex-toolbar {
+    left: var(--vex-sidebar-collapsed-width) !important;
+  }
+}
+
+/* Backdrop mobile */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 95;
+}
+
+/* =========================================================
+   MOBILE / TABLETTE ≤ 992px
+   ========================================================= */
+@media (max-width: 992px) {
+  .vex-content {
+    margin-left: 0 !important;
+    padding: 16px;
+  }
+
+  /* Header collé à gauche sur toute la largeur */
+  ::ng-deep .vex-toolbar {
+    left: 0 !important;
+  }
+}

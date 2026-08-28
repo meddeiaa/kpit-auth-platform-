@@ -1,70 +1,170 @@
-<div class="welcome-container" *ngIf="user">
-  <mat-card class="welcome-card">
+<div class="welcome-page" *ngIf="user">
+  
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Dashboards</h1>
+      <div class="breadcrumbs">
+        <mat-icon class="icon-home">home</mat-icon>
+        <span class="dot">•</span>
+        <span class="crumb">Dashboards</span>
+        <span class="dot">•</span>
+        <span class="crumb current">Overview</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
     
-    <mat-card-header>
-      <mat-card-title class="welcome-title">
-        <mat-icon class="success-icon">check_circle</mat-icon>
-        Welcome, {{ user.first_name }} {{ user.last_name }}!
-      </mat-card-title>
-      <mat-card-subtitle>You are successfully logged in</mat-card-subtitle>
-    </mat-card-header>
-
-    <mat-card-content class="welcome-content">
+    <!-- LIGNE 1 : BANNIÈRE + VRAIS KPIS -->
+    <div class="dashboard-top-row">
       
-      <div class="user-info">
-        
-        <div class="info-item">
-          <mat-icon>badge</mat-icon>
-          <div>
-            <strong>Username</strong>
-            <p>{{ user.login }}</p>
-          </div>
-        </div>
+      <!-- Bannière -->
+      <div class="vex-card banner-card">
+  <div class="banner-content">
+    <div class="banner-text">
+      <h2 class="banner-title">Welcome back, {{ user.first_name }}!</h2>
+      <p class="banner-subtitle">
+        You are logged in as <strong>{{ user.role | uppercase }}</strong>. Your testing environment is synchronized.
+      </p>
+    </div>
+    <div class="banner-actions">
+      <button mat-flat-button class="btn-vex-white" (click)="goToTestManagement()">
+        <span>Manage Tests</span>
+        <mat-icon>arrow_forward</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>
 
-        <div class="info-item">
-          <mat-icon>email</mat-icon>
-          <div>
-            <strong>Email</strong>
-            <p>{{ user.email }}</p>
+      <!-- KPI 1 : VRAI Total Tests -->
+      <div class="vex-card kpi-card">
+        <div class="kpi-header">
+          <div class="kpi-value" *ngIf="!isLoadingStats">{{ totalTests }}</div>
+          <mat-spinner diameter="24" *ngIf="isLoadingStats"></mat-spinner>
+          <div class="kpi-icon-box icon-indigo">
+            <mat-icon>fact_check</mat-icon>
           </div>
         </div>
-        
-        <div class="info-item">
-          <mat-icon [ngStyle]="{ color: '#667eea' }">{{ getRoleIcon(user.role) }}</mat-icon>
-          <div>
-            <strong>Role</strong>
-            <mat-chip [color]="getRoleColor(user.role)" selected>
-              {{ user.role | uppercase }}
-            </mat-chip>
-          </div>
-        </div>
-        
-        <div class="info-item">
-          <mat-icon>schedule</mat-icon>
-          <div>
-            <strong>Login Time</strong>
-            <p>{{ loginTime | date:'medium' }}</p>
-          </div>
-        </div>
-
-        <div class="info-item">
-          <mat-icon>fingerprint</mat-icon>
-          <div>
-            <strong>User ID</strong>
-            <p>#{{ user.id }}</p>
-          </div>
-        </div>
-
+        <div class="kpi-label">Total Test Cases</div>
       </div>
 
-    </mat-card-content>
+      <!-- KPI 2 : VRAI Total Suites -->
+      <div class="vex-card kpi-card">
+        <div class="kpi-header">
+          <div class="kpi-value" *ngIf="!isLoadingStats">{{ totalSuites }}</div>
+          <mat-spinner diameter="24" *ngIf="isLoadingStats"></mat-spinner>
+          <div class="kpi-icon-box icon-amber">
+            <mat-icon>folder_open</mat-icon>
+          </div>
+        </div>
+        <div class="kpi-label">Test Suites Files</div>
+      </div>
 
-    <mat-card-actions class="welcome-actions">
-      <button mat-raised-button color="warn" (click)="onLogout()" class="logout-button">
-        <mat-icon>logout</mat-icon>
-        Logout
-      </button>
-    </mat-card-actions>
+    </div>
 
-  </mat-card>
+    <!-- LIGNE 2 : INFOS ENVIRONNEMENT (Honnête et réel) -->
+    <div class="dashboard-middle-row">
+      <div class="vex-card chart-card">
+        <div class="card-header">
+          <h3>Environment Status</h3>
+        </div>
+        
+        <div class="chart-content" style="padding-top: 20px;">
+          <div class="real-stats-container">
+            <div class="stat-block">
+              <mat-icon color="primary">memory</mat-icon>
+              <div class="text">
+                <span class="val">Robot Framework</span>
+                <span class="lbl">Execution Engine Ready</span>
+              </div>
+            </div>
+            
+            <div class="stat-block">
+              <mat-icon color="accent">local_offer</mat-icon>
+              <div class="text">
+                <span class="val" *ngIf="!isLoadingStats">{{ totalTags }} Tags</span>
+                <span class="lbl">Available for filtering</span>
+              </div>
+            </div>
+
+            <div class="stat-block pending-history">
+              <mat-icon>insights</mat-icon>
+              <div class="text">
+                <span class="val">Historical Analytics</span>
+                <span class="lbl">Database tracking will be activated in upcoming layers.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIGNE 3 : PROFIL & ACTIONS (Inchangé) -->
+    <div class="dashboard-bottom-row">
+      
+      <!-- Session -->
+      <div class="vex-card info-card">
+        <div class="card-header">
+          <h3>Current Session</h3>
+        </div>
+        <div class="info-list">
+          <div class="info-item">
+            <div class="info-icon"><mat-icon>person_outline</mat-icon></div>
+            <div class="info-text">
+              <span class="label">Username</span>
+              <span class="value">{{ user.login }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-icon"><mat-icon>mail_outline</mat-icon></div>
+            <div class="info-text">
+              <span class="label">Email</span>
+              <span class="value">{{ user.email }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-icon"><mat-icon>schedule</mat-icon></div>
+            <div class="info-text">
+              <span class="label">Login Time</span>
+              <span class="value">{{ loginTime | date:'MMM d, y, h:mm a' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="vex-card actions-card">
+        <div class="card-header">
+          <h3>Quick Actions</h3>
+        </div>
+        <div class="action-list">
+          <div class="action-item" (click)="goToTestManagement()">
+            <div class="action-icon bg-indigo"><mat-icon>fact_check</mat-icon></div>
+            <div class="action-text">
+              <strong>Manage Test Cases</strong>
+              <span>Create, edit, and run your automated tests</span>
+            </div>
+            <mat-icon class="arrow">chevron_right</mat-icon>
+          </div>
+          
+          <div class="action-item">
+            <div class="action-icon bg-teal"><mat-icon>assessment</mat-icon></div>
+            <div class="action-text">
+              <strong>View Reports</strong>
+              <span>Analyze the latest test execution results</span>
+            </div>
+            <mat-icon class="arrow">chevron_right</mat-icon>
+          </div>
+          
+          <div class="action-item action-logout" (click)="onLogout()">
+            <div class="action-icon bg-red"><mat-icon>logout</mat-icon></div>
+            <div class="action-text">
+              <strong class="text-red">Sign Out</strong>
+              <span>Securely end your current session</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

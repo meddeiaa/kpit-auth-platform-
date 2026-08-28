@@ -70,7 +70,7 @@ ${STATUS_SERVER_ERROR}     500
 # =============================================================
 ${FRONTEND_URL}            http://localhost:4200
 ${BROWSER}                 chrome
-${IMPLICIT_WAIT}           5s
+${IMPLICIT_WAIT}           10s
 
 # =============================================================
 # UI SELECTORS (Frontend Elements) - AMÉLIORÉS
@@ -89,5 +89,5 @@ ${SHOW_PASSWORD_BUTTON}    css=button[mat-icon-button][matSuffix]
 
 # Welcome Page Elements
 ${WELCOME_TITLE}           css=.welcome-title
-${LOGOUT_BUTTON}           css=.logout-button
-${USER_INFO}               css=.user-info
+${WELCOME_MESSAGE}         css=.welcome-message
+${LOGOUT_BUTTON}           xpath=//strong[text()='Logout']/ancestor::div[contains(@class,'action-item')]

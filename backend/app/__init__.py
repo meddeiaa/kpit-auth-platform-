@@ -88,5 +88,8 @@ def create_app(config_name='development'):
     # --- Namespace : Auth ---
     from app.routes.auth import auth_ns
     api.add_namespace(auth_ns)
+    # --- Namespace : Tests Manager ---
+    from app.routes.test_manager import test_ns
+    api.add_namespace(test_ns)
     
     return app
