@@ -38,6 +38,12 @@ export interface LoginSuccessResponse {
   success: true;
   message: string;
   user: User;
+   access_token?: string;
+}
+
+export interface MeResponse {
+  success: boolean;
+  user: User;
 }
 
 // Réponse du backend pour register (succès)

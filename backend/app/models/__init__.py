@@ -1,10 +1,8 @@
 """
-Package models - Contient tous les modèles de base de données.
-
-Ce fichier importe tous les modèles pour qu'ils soient facilement
-accessibles depuis d'autres modules.
+Package Models.
+Exporte tous les modèles SQLAlchemy pour qu'ils soient enregistrés au démarrage.
 """
 from app.models.user import User
+from app.models.audit import AuditLog
 
-# Liste de tous les modèles exportés
-__all__ = ['User']
+__all__ = ['User', 'AuditLog']

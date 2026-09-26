@@ -1,26 +1,25 @@
 """
 Extensions Flask.
 
-Ce module initialise toutes les extensions Flask sans les lier
-à une application spécifique. Elles seront liées dans __init__.py
-via la méthode init_app().
-
-Ce pattern permet d'éviter les imports circulaires et de tester
-plus facilement l'application.
+Initialisées ici, liées à l'app dans create_app() via init_app().
 """
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-
-# ============================================
-# EXTENSIONS FLASK
-# ============================================
-
-# ORM - Object Relational Mapper
-# Permet de manipuler la base de données avec des objets Python
-# au lieu d'écrire du SQL brut
+from flask_jwt_extended import JWTManager
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+# ORM
 db = SQLAlchemy()
 
-# Migrations de base de données
-# Permet de faire évoluer le schéma de la BD sans perdre les données
-# (comme un système de versioning pour la BD)
+# Migrations
 migrate = Migrate()
+
+# JWT — Layer 1 SECURITY+
+jwt = JWTManager()
+
+# Rate Limiter (Layer 1) — Identifie les clients par leur adresse IP
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],  # Limites globales par défaut
+    storage_uri="memory://"                         # Stockage en mémoire RAM
+)

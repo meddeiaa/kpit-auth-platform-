@@ -15,7 +15,7 @@ export const routes: Routes = [
     component: LoginComponent,
     title: 'Login - KPIT Auth Platform'
   },
-    {
+ {
     path: '',
     component: MainLayoutComponent,
     children: [

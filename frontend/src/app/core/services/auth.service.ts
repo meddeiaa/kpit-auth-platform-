@@ -12,130 +12,117 @@ import {
   User
 } from '../models/auth.model';
 
-/**
- * Service d'authentification.
- * Gère toutes les opérations liées à l'auth :
- * - Login
- * - Register
- * - Logout
- * - Récupération de l'utilisateur courant
- */
 @Injectable({
-  providedIn: 'root'  // Ce service est disponible partout dans l'app
+  providedIn: 'root'
 })
 export class AuthService {
-  
-  // URL de base de l'API (vient de environment.ts)
+
   private apiUrl = environment.apiUrl;
-  
-  // Stockage de l'utilisateur courant
+
+  private readonly USER_KEY = 'currentUser';
+  private readonly TOKEN_KEY = 'access_token';
+
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(private http: HttpClient) {
-    // Au démarrage, essayer de récupérer l'utilisateur depuis localStorage
     this.loadUserFromStorage();
   }
 
-  /**
-   * Se connecter avec un login et un mot de passe.
-   * 
-   * @param credentials - Les identifiants (login + password)
-   * @returns Observable de la réponse
-   */
   login(credentials: LoginRequest): Observable<LoginSuccessResponse> {
     const url = `${this.apiUrl}/auth/login`;
-    
+
     return this.http.post<LoginSuccessResponse>(url, credentials).pipe(
       tap(response => {
-        // Si succès, sauvegarder l'utilisateur
         if (response.success && response.user) {
           this.saveUser(response.user);
+          if (response.access_token) {
+            this.saveToken(response.access_token);
+          }
         }
       }),
       catchError(this.handleError)
     );
   }
 
-  /**
-   * Créer un nouveau compte utilisateur.
-   * 
-   * @param userData - Les données du nouvel utilisateur
-   * @returns Observable de la réponse
-   */
   register(userData: RegisterRequest): Observable<RegisterSuccessResponse> {
     const url = `${this.apiUrl}/auth/register`;
-    
     return this.http.post<RegisterSuccessResponse>(url, userData).pipe(
       catchError(this.handleError)
     );
   }
 
   /**
-   * Se déconnecter (efface les données locales).
+   * Vérifie le token auprès du serveur (signature + user réel).
+   * Utile pour tester JWT ; plus tard au bootstrap de l'app.
    */
+  me(): Observable<{ success: boolean; user: User }> {
+    return this.http.get<{ success: boolean; user: User }>(`${this.apiUrl}/auth/me`).pipe(
+      tap(res => {
+        if (res.success && res.user) {
+          this.saveUser(res.user);
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
   logout(): void {
-    // Supprimer l'utilisateur du localStorage
-    localStorage.removeItem('currentUser');
-    // Notifier tous les composants
+    localStorage.removeItem(this.USER_KEY);
+    localStorage.removeItem(this.TOKEN_KEY);
     this.currentUserSubject.next(null);
   }
 
-  /**
-   * Récupérer l'utilisateur courant (synchrone).
-   */
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
   }
 
-  /**
-   * Vérifier si l'utilisateur est connecté.
-   */
-  isAuthenticated(): boolean {
-    return this.getCurrentUser() !== null;
+  /** Token JWT pour l'interceptor */
+  getToken(): string | null {
+    return localStorage.getItem(this.TOKEN_KEY);
   }
 
   /**
-   * Sauvegarder l'utilisateur dans localStorage + BehaviorSubject.
+   * Connecté = user local + access_token présent.
+   * (Le serveur reste la source de vérité via @jwt_required plus tard.)
    */
+  isAuthenticated(): boolean {
+    return this.getCurrentUser() !== null && !!this.getToken();
+  }
+
   private saveUser(user: User): void {
-    localStorage.setItem('currentUser', JSON.stringify(user));
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
     this.currentUserSubject.next(user);
   }
 
-  /**
-   * Charger l'utilisateur depuis localStorage (au démarrage).
-   */
+  private saveToken(token: string): void {
+    localStorage.setItem(this.TOKEN_KEY, token);
+  }
+
   private loadUserFromStorage(): void {
-    const userStr = localStorage.getItem('currentUser');
+    const userStr = localStorage.getItem(this.USER_KEY);
     if (userStr) {
       try {
         const user: User = JSON.parse(userStr);
         this.currentUserSubject.next(user);
-      } catch (e) {
-        console.error('Error parsing user from storage:', e);
-        localStorage.removeItem('currentUser');
+      } catch {
+        localStorage.removeItem(this.USER_KEY);
+        localStorage.removeItem(this.TOKEN_KEY);
       }
     }
   }
 
-  /**
-   * Gérer les erreurs HTTP de manière centralisée.
-   */
   private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'An unknown error occurred';
 
     if (error.error instanceof ErrorEvent) {
-      // Erreur côté client (réseau, etc.)
       errorMessage = `Client error: ${error.error.message}`;
+    } else if (error.error && error.error.error) {
+      errorMessage = error.error.error;
+    } else if (error.status === 401) {
+      errorMessage = 'Unauthorized — invalid or expired token';
     } else {
-      // Erreur côté serveur
-      if (error.error && error.error.error) {
-        // Le backend a renvoyé un message d'erreur
-        errorMessage = error.error.error;
-      } else {
-        errorMessage = `Server error: ${error.status} - ${error.statusText}`;
-      }
+      errorMessage = `Server error: ${error.status} - ${error.statusText}`;
     }
 
     console.error('AuthService error:', errorMessage);

@@ -1,234 +1,169 @@
 """
 Routes d'authentification.
 
-Ce module contient tous les endpoints liés à l'authentification :
-- POST /api/auth/register : Créer un nouveau compte utilisateur
-- POST /api/auth/login    : Se connecter avec des identifiants
-
-Note : Cette version est SIMPLIFIÉE (sans bcrypt/JWT).
-La sécurité sera ajoutée dans l'ÉTAPE 20.
+Layer 0 : register + login
+Layer 1A : bcrypt
+Layer 1B : JWT access_token au login + GET /auth/me
 """
 from flask import request
 from flask_restx import Namespace, Resource, fields
+from flask_jwt_extended import (
+    create_access_token,
+    jwt_required,
+    get_jwt_identity,
+)
 
-from app.extensions import db
+from app.extensions import db,limiter
 from app.models import User
+from app.models.audit import AuditLog
 
 
-# ============================================
-# NAMESPACE (équivalent d'un Blueprint)
-# ============================================
 auth_ns = Namespace(
     'auth',
-    description='Authentication endpoints (register, login)'
+    description='Authentication endpoints (register, login, me)'
 )
 
 
-# ============================================
-# MODÈLES SWAGGER (pour la documentation)
-# ============================================
-# Ces modèles décrivent le format attendu dans Swagger
-
 register_model = auth_ns.model('RegisterRequest', {
-    'first_name': fields.String(
-        required=True,
-        description='First name of the user',
-        example='Ahmed'
-    ),
-    'last_name': fields.String(
-        required=True,
-        description='Last name of the user',
-        example='Ben Ali'
-    ),
-    'email': fields.String(
-        required=True,
-        description='Email address (must be unique)',
-        example='ahmed@test.com'
-    ),
-    'login': fields.String(
-        required=True,
-        description='Username (must be unique)',
-        example='ahmed'
-    ),
-    'password': fields.String(
-        required=True,
-        description='Password (will be hashed in production)',
-        example='ahmed123'
-    ),
-    'role': fields.String(
-        required=False,
-        description='User role (admin, tester, viewer)',
-        default='viewer',
-        example='viewer'
-    )
+    'first_name': fields.String(required=True, example='Ahmed'),
+    'last_name': fields.String(required=True, example='Ben Ali'),
+    'email': fields.String(required=True, example='ahmed@test.com'),
+    'login': fields.String(required=True, example='ahmed'),
+    'password': fields.String(required=True, example='ahmed123'),
+    'role': fields.String(required=False, default='viewer', example='viewer'),
 })
 
 login_model = auth_ns.model('LoginRequest', {
-    'login': fields.String(
-        required=True,
-        description='Username',
-        example='ahmed'
-    ),
-    'password': fields.String(
-        required=True,
-        description='Password',
-        example='ahmed123'
-    )
-})
-
-user_response_model = auth_ns.model('UserResponse', {
-    'id': fields.Integer(description='User ID'),
-    'first_name': fields.String(description='First name'),
-    'last_name': fields.String(description='Last name'),
-    'email': fields.String(description='Email'),
-    'login': fields.String(description='Username'),
-    'role': fields.String(description='Role'),
-    'is_active': fields.Boolean(description='Active status'),
-    'created_at': fields.String(description='Creation date')
+    'login': fields.String(required=True, example='ahmed'),
+    'password': fields.String(required=True, example='ahmed123'),
 })
 
 
-# ============================================
-# ENDPOINT : REGISTER
-# ============================================
 @auth_ns.route('/register')
 class Register(Resource):
-    """Endpoint pour créer un nouveau compte utilisateur."""
-    
     @auth_ns.expect(register_model, validate=False)
     @auth_ns.doc('register_user')
     def post(self):
-        """
-        Créer un nouveau compte utilisateur.
-        
-        Vérifie que :
-        - Tous les champs obligatoires sont présents
-        - L'email n'est pas déjà utilisé
-        - Le login n'est pas déjà utilisé
-        
-        Returns:
-            201 : Utilisateur créé avec succès
-            400 : Champs manquants ou invalides
-            409 : Email ou login déjà utilisé
-        """
-        # === RÉCUPÉRER LES DONNÉES ENVOYÉES ===
-        data = request.get_json()
-        
-        # === VALIDATION : Champs obligatoires ===
+        data = request.get_json() or {}
+
         required_fields = ['first_name', 'last_name', 'email', 'login', 'password']
-        
         for field in required_fields:
             if field not in data or not data[field]:
-                return {
-                    'success': False,
-                    'error': f'Missing or empty field: {field}'
-                }, 400
-        
-        # === VÉRIFIER QUE L'EMAIL N'EXISTE PAS ===
-        existing_email = User.query.filter_by(email=data['email']).first()
-        if existing_email:
-            return {
-                'success': False,
-                'error': 'Email already registered'
-            }, 409  # 409 = Conflict
-        
-        # === VÉRIFIER QUE LE LOGIN N'EXISTE PAS ===
-        existing_login = User.query.filter_by(login=data['login']).first()
-        if existing_login:
-            return {
-                'success': False,
-                'error': 'Login already taken'
-            }, 409
-        
-        # === CRÉER LE NOUVEL UTILISATEUR ===
+                return {'success': False, 'error': f'Missing or empty field: {field}'}, 400
+
+        if len(str(data['password'])) < 6:
+            return {'success': False, 'error': 'Password must be at least 6 characters'}, 400
+
+        if User.query.filter_by(email=data['email']).first():
+            return {'success': False, 'error': 'Email already registered'}, 409
+
+        if User.query.filter_by(login=data['login']).first():
+            return {'success': False, 'error': 'Login already taken'}, 409
+
         new_user = User(
             first_name=data['first_name'],
             last_name=data['last_name'],
             email=data['email'],
             login=data['login'],
-            password=data['password'],  # ⚠️ En clair pour l'instant !
-            role=data.get('role', 'viewer')  # Par défaut : viewer
+            role=data.get('role', 'viewer') or 'viewer',
         )
-        
-        # === SAUVEGARDER DANS LA BD ===
+        new_user.set_password(data['password'])
+
         try:
             db.session.add(new_user)
             db.session.commit()
         except Exception as e:
             db.session.rollback()
-            return {
-                'success': False,
-                'error': f'Database error: {str(e)}'
-            }, 500
-        
-        # === RETOURNER LA RÉPONSE ===
+            return {'success': False, 'error': f'Database error: {str(e)}'}, 500
+
         return {
             'success': True,
             'message': 'User created successfully',
-            'user': new_user.to_dict()
-        }, 201  # 201 = Created
+            'user': new_user.to_dict(),
+        }, 201
 
+def log_audit_event(event_type, login=None, user_id=None):
+    try:
+        log_entry = AuditLog(
+            user_id=user_id,
+            login_attempted=login,
+            event=event_type,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent', '')[:255]
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"[AUDIT LOG ERROR] {e}")
 
-# ============================================
-# ENDPOINT : LOGIN
-# ============================================
 @auth_ns.route('/login')
 class Login(Resource):
     """Endpoint pour se connecter avec des identifiants."""
     
     @auth_ns.expect(login_model, validate=False)
     @auth_ns.doc('login_user')
+    @limiter.limit("5 per minute")  # ← PROTECTION ANTI BRUTE-FORCE : 5 essais/min par IP
     def post(self):
-        """
-        Se connecter avec un login et un mot de passe.
-        
-        Vérifie que :
-        - Le login et le password sont fournis
-        - L'utilisateur existe
-        - Le mot de passe correspond
-        
-        Returns:
-            200 : Connexion réussie
-            400 : Champs manquants
-            401 : Identifiants invalides
-        """
-        # === RÉCUPÉRER LES DONNÉES ===
-        data = request.get_json()
-        
-        # === VALIDATION : Champs obligatoires ===
-        if not data or 'login' not in data or 'password' not in data:
-            return {
-                'success': False,
-                'error': 'Login and password are required'
-            }, 400
-        
-        # === CHERCHER L'UTILISATEUR ===
-        user = User.query.filter_by(login=data['login']).first()
-        
-        # === VÉRIFIER QUE L'UTILISATEUR EXISTE ===
-        if not user:
-            return {
-                'success': False,
-                'error': 'Invalid username or password'
-            }, 401  # 401 = Unauthorized
-        
-        # === VÉRIFIER LE MOT DE PASSE (en clair pour l'instant) ===
-        if user.password != data['password']:
-            return {
-                'success': False,
-                'error': 'Invalid username or password'
-            }, 401
-        
-        # === VÉRIFIER QUE LE COMPTE EST ACTIF ===
+        data = request.get_json() or {}
+        login_input = data.get('login')
+        password_input = data.get('password')
+
+        if not login_input or not password_input:
+            log_audit_event('LOGIN_INVALID_INPUT', login=login_input)
+            return {'success': False, 'error': 'Login and password are required'}, 400
+
+        user = User.query.filter_by(login=login_input).first()
+
+        # ÉCHEC DE CONNEXION (Mot de passe faux ou utilisateur inexistant)
+        if not user or not user.check_password(password_input):
+            log_audit_event('LOGIN_FAILED', login=login_input, user_id=user.id if user else None)
+            return {'success': False, 'error': 'Invalid username or password'}, 401
+
+        # COMPTE DÉSACTIVÉ
         if not user.is_active:
-            return {
-                'success': False,
-                'error': 'Account is disabled'
-            }, 403  # 403 = Forbidden
+            log_audit_event('LOGIN_DISABLED_ACCOUNT', login=login_input, user_id=user.id)
+            return {'success': False, 'error': 'Account is disabled'}, 403
+
+        # SUCCÈS DE CONNEXION
+        log_audit_event('LOGIN_SUCCESS', login=login_input, user_id=user.id)
         
-        # === RÉPONSE DE SUCCÈS ===
+        access_token = create_access_token(
+            identity=str(user.id),
+            additional_claims={'login': user.login, 'role': user.role}
+        )
+
         return {
             'success': True,
             'message': f'Welcome {user.full_name}!',
+            'access_token': access_token,
+            'user': user.to_dict()
+        }, 200
+
+
+@auth_ns.route('/me')
+class Me(Resource):
+    """Récupérer le profil de l'utilisateur connecté via son JWT."""
+    
+    @jwt_required()
+    @auth_ns.doc(security='Bearer')  # ← AJOUT ICI (Affiche le cadenas sur GET /me)
+    def get(self):
+        """Retourne les informations de l'utilisateur identifié par le token."""
+        user_id = get_jwt_identity()
+        
+        try:
+            uid = int(user_id)
+        except (TypeError, ValueError):
+            return {'success': False, 'error': 'Invalid token subject'}, 401
+
+        user = User.query.get(uid)
+        if not user:
+            return {'success': False, 'error': 'User not found'}, 404
+
+        if not user.is_active:
+            return {'success': False, 'error': 'Account is disabled'}, 403
+
+        return {
+            'success': True,
             'user': user.to_dict()
         }, 200

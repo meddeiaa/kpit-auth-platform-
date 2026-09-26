@@ -1,139 +1,125 @@
 """
 Modèle User - Représente un utilisateur dans la base de données.
 
-Ce modèle définit la structure de la table 'users' avec toutes
-les colonnes nécessaires pour l'authentification et la gestion
-des utilisateurs.
+Layer 1 — SECURITY+ :
+Les mots de passe sont hashés avec bcrypt (salt + cost factor).
 """
 from datetime import datetime
+import bcrypt
+
 from app.extensions import db
 
 
 class User(db.Model):
     """
     Modèle User - Un utilisateur de l'application.
-    
-    Cette classe représente la table 'users' dans la base de données.
-    Chaque instance de cette classe correspond à une ligne dans la table.
-    
+
     Attributes:
-        id (int): Identifiant unique auto-généré
-        first_name (str): Prénom de l'utilisateur
-        last_name (str): Nom de famille
-        email (str): Email unique (utilisé pour la connexion)
-        login (str): Login unique (nom d'utilisateur)
-        password (str): Mot de passe (sera haché avec bcrypt plus tard)
-        role (str): Rôle de l'utilisateur (admin, tester, viewer)
-        is_active (bool): Compte actif ou désactivé
-        created_at (datetime): Date de création du compte
-        updated_at (datetime): Date de dernière modification
+        id, first_name, last_name, email, login,
+        password (HASH bcrypt, jamais le clair),
+        role, is_active, created_at, updated_at
     """
-    
-    # ============================================
-    # NOM DE LA TABLE
-    # ============================================
+
     __tablename__ = 'users'
-    
-    # ============================================
-    # COLONNES
-    # ============================================
-    
-    # ID unique auto-généré (clé primaire)
-    id = db.Column(
-        db.Integer,
-        primary_key=True,
-        autoincrement=True
-    )
-    
-    # Informations personnelles
-    first_name = db.Column(
-        db.String(50),
-        nullable=False  # Ce champ est OBLIGATOIRE
-    )
-    
-    last_name = db.Column(
-        db.String(50),
-        nullable=False
-    )
-    
-    # Email (unique = deux utilisateurs ne peuvent pas avoir le même email)
-    email = db.Column(
-        db.String(100),
-        unique=True,
-        nullable=False,
-        index=True  # Index pour recherche rapide
-    )
-    
-    # Login / Username
-    login = db.Column(
-        db.String(50),
-        unique=True,
-        nullable=False,
-        index=True
-    )
-    
-    # Mot de passe (sera haché avec bcrypt dans une prochaine étape)
-    password = db.Column(
-        db.String(255),  # 255 caractères car le hash bcrypt fait ~60 caractères
-        nullable=False
-    )
-    
-    # Rôle de l'utilisateur (pour RBAC : Role-Based Access Control)
-    role = db.Column(
-        db.String(20),
-        default='viewer',  # Valeur par défaut si non spécifiée
-        nullable=False
-    )
-    
-    # Statut du compte (actif ou désactivé)
-    is_active = db.Column(
-        db.Boolean,
-        default=True,
-        nullable=False
-    )
-    
-    # ============================================
-    # TIMESTAMPS
-    # ============================================
-    
-    # Date de création (remplie automatiquement à la création)
-    created_at = db.Column(
-        db.DateTime,
-        default=datetime.utcnow,
-        nullable=False
-    )
-    
-    # Date de dernière modification (mise à jour auto)
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), nullable=False)
+
+    email = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    login = db.Column(db.String(50), unique=True, nullable=False, index=True)
+
+    # Stocke le HASH bcrypt (ex: $2b$12$...), pas le mot de passe clair
+    password = db.Column(db.String(255), nullable=False)
+
+    role = db.Column(db.String(20), default='viewer', nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(
         db.DateTime,
         default=datetime.utcnow,
-        onupdate=datetime.utcnow,  # Se met à jour à chaque modification
+        onupdate=datetime.utcnow,
         nullable=False
     )
-    
-    # ============================================
-    # MÉTHODES
-    # ============================================
-    
+
     def __repr__(self):
-        """
-        Représentation string pour le debug.
-        
-        Quand tu print un objet User, ça affichera :
-        <User ahmed (ahmed@test.com)>
-        """
         return f'<User {self.login} ({self.email})>'
-    
+
+    # ============================================
+    # LAYER 1 — BCRYPT
+    # ============================================
+
+    def set_password(self, plain_password: str) -> None:
+        """
+        Hash le mot de passe clair et le stocke dans self.password.
+
+        - gensalt() : salt aléatoire unique (protège contre rainbow tables)
+        - rounds=12 : cost factor (compromis sécu / perf ~100ms)
+        - decode : on stocke une str UTF-8 en DB, pas des bytes bruts
+        """
+        if not plain_password:
+            raise ValueError('Password cannot be empty')
+
+        salt = bcrypt.gensalt(rounds=12)
+        hashed = bcrypt.hashpw(plain_password.encode('utf-8'), salt)
+        self.password = hashed.decode('utf-8')
+
+    def check_password(self, plain_password: str) -> bool:
+        """
+        Vérifie un mot de passe clair contre la valeur en base.
+
+        Cas 1 — Hash bcrypt (Layer 1) :
+            bcrypt.checkpw(clair, hash)
+
+        Cas 2 — Ancien clair Layer 0 (migration douce) :
+            si égalité, on re-hash immédiatement (upgrade)
+            puis on retourne True
+
+        Returns:
+            True si le mot de passe est correct, False sinon.
+        """
+        if not plain_password or not self.password:
+            return False
+
+        stored = self.password
+
+        # --- Cas bcrypt moderne ---
+        if self._is_bcrypt_hash(stored):
+            try:
+                return bcrypt.checkpw(
+                    plain_password.encode('utf-8'),
+                    stored.encode('utf-8')
+                )
+            except (ValueError, TypeError):
+                return False
+
+        # --- Cas legacy Layer 0 (texte clair) ---
+        if stored == plain_password:
+            # Upgrade transparent : prochain login utilisera uniquement bcrypt
+            self.set_password(plain_password)
+            try:
+                db.session.add(self)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                # Même si le commit échoue, l'auth de CE request reste valide
+            return True
+
+        return False
+
+    @staticmethod
+    def _is_bcrypt_hash(value: str) -> bool:
+        """Détecte un hash bcrypt ($2a$, $2b$, $2y$)."""
+        if not value or not isinstance(value, str):
+            return False
+        return value.startswith(('$2a$', '$2b$', '$2y$')) and len(value) >= 50
+
     def to_dict(self, include_password=False):
         """
-        Convertit l'objet User en dictionnaire (pour les réponses JSON).
-        
-        Args:
-            include_password (bool): Inclure le mot de passe ? 
-                                    (JAMAIS TRUE en production !)
-        
-        Returns:
-            dict: Représentation de l'utilisateur en dictionnaire
+        Sérialisation JSON.
+        Par défaut : JAMAIS le hash (ni le clair).
         """
         data = {
             'id': self.id,
@@ -146,21 +132,13 @@ class User(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
-        
-        # ⚠️ ATTENTION : NE JAMAIS inclure le mot de passe dans les réponses API !
+
         if include_password:
+            # Uniquement pour debug local — JAMAIS en production / dans les routes
             data['password'] = self.password
-        
+
         return data
-    
+
     @property
     def full_name(self):
-        """
-        Retourne le nom complet.
-        
-        Exemple : "Ahmed Ben Ali"
-        
-        C'est une @property : on peut l'utiliser comme un attribut
-        (user.full_name) sans les parenthèses (user.full_name()).
-        """
         return f'{self.first_name} {self.last_name}'

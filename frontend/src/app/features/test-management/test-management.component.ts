@@ -149,6 +149,37 @@ export class TestManagementComponent implements OnInit, OnDestroy {
     this.allTestCases.forEach(tc => suitesSet.add(tc.file_name));
     this.suites = Array.from(suitesSet).sort();
   }
+    // ============================================
+  // RBAC GETTERS (Contrôle d'affichage IHM)
+  // ============================================
+
+  /**
+   * Retourne le rôle courant en minuscules (ex: 'admin', 'tester', 'viewer')
+   */
+  get userRole(): string {
+    return this.currentUser?.role?.toLowerCase() || 'viewer';
+  }
+
+  /**
+   * Seul l'ADMIN a accès à la gestion complète (Créer, Modifier, Supprimer)
+   */
+  get canManageTests(): boolean {
+    return this.userRole === 'admin';
+  }
+
+  /**
+   * L'ADMIN et le TESTER ont le droit d'exécuter des tests
+   */
+  get canRunTests(): boolean {
+    return this.userRole === 'admin' || this.userRole === 'tester';
+  }
+
+  /**
+   * Le VIEWER est en lecture seule absolue
+   */
+  get isReadOnly(): boolean {
+    return this.userRole === 'viewer';
+  }
 
   // ============ FILTRES & PAGINATION ============
   

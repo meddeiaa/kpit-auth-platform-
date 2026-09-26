@@ -38,6 +38,7 @@
       
       <span class="flex-1"></span>
       
+      <!-- Filtres -->
       <button mat-icon-button 
               [matMenuTriggerFor]="filterMenu"
               matTooltip="Filter Options"
@@ -45,16 +46,20 @@
         <mat-icon [class.filter-active]="hasActiveFilters()">filter_list</mat-icon>
       </button>
 
+      <!-- Bouton Add (ADMIN Uniquement) -->
       <button mat-mini-fab 
               color="primary"
+              *ngIf="canManageTests"
               (click)="openAddTestDialog()" 
               matTooltip="Add Test Case" 
               class="vex-fab-add">
         <mat-icon>add</mat-icon>
       </button>
 
+      <!-- Bouton Run (ADMIN et TESTER) -->
       <button mat-flat-button 
               color="primary"
+              *ngIf="canRunTests"
               [matMenuTriggerFor]="runMenu"
               [disabled]="isRunning"
               class="vex-pill-run">
@@ -63,7 +68,7 @@
         <mat-icon class="dropdown-icon">arrow_drop_down</mat-icon>
       </button>
 
-      <!-- Menus -->
+      <!-- Menus déroulants -->
       <mat-menu #filterMenu="matMenu" class="filter-menu-panel" xPosition="before">
         <div class="filter-menu" (click)="$event.stopPropagation()">
           <div class="filter-header">
@@ -136,7 +141,8 @@
             <th class="col-image"></th>
             <th class="col-id">ID</th>
             <th class="col-name">Test Name</th>
-            <th class="col-actions">Actions</th>
+            <!-- Affiché si l'utilisateur a au moins un droit d'action -->
+            <th class="col-actions" *ngIf="canRunTests || canManageTests">Actions</th>
             <th class="col-suite">Suite</th>
             <th class="col-steps">Steps</th>
             <th class="col-labels">Tags</th>
@@ -167,19 +173,25 @@
                 <div class="test-doc" *ngIf="test.documentation">{{ test.documentation }}</div>
               </div>
             </td>
-            <td class="col-actions">
+            
+            <!-- Actions Rapides (Ligne) -->
+            <td class="col-actions" *ngIf="canRunTests || canManageTests">
               <div class="action-buttons">
-                <a class="action-btn action-primary" (click)="runSingleTest(test)" matTooltip="Run Test">
+                <!-- Run : ADMIN & TESTER -->
+                <a class="action-btn action-primary" *ngIf="canRunTests" (click)="runSingleTest(test)" matTooltip="Run Test">
                   <mat-icon>play_arrow</mat-icon>
                 </a>
-                <a class="action-btn action-teal" (click)="openEditTestDialog(test)" matTooltip="Edit Test">
+                <!-- Edit : ADMIN uniquement -->
+                <a class="action-btn action-teal" *ngIf="canManageTests" (click)="openEditTestDialog(test)" matTooltip="Edit Test">
                   <mat-icon>edit</mat-icon>
                 </a>
-                <a class="action-btn action-red" (click)="deleteTest(test)" matTooltip="Delete Test">
+                <!-- Delete : ADMIN uniquement -->
+                <a class="action-btn action-red" *ngIf="canManageTests" (click)="deleteTest(test)" matTooltip="Delete Test">
                   <mat-icon>delete</mat-icon>
                 </a>
               </div>
             </td>
+
             <td class="col-suite text-secondary">{{ test.file_name }}</td>
             <td class="col-steps text-secondary">
               <span class="steps-count">{{ test.steps_count }}</span>
@@ -192,25 +204,28 @@
                 <div class="label-more" *ngIf="test.tags.length > 3">+{{ test.tags.length - 3 }}</div>
               </div>
             </td>
+
+            <!-- Menu 3 points -->
             <td class="col-menu">
               <button mat-icon-button 
                       [matMenuTriggerFor]="rowMenu" 
+                      *ngIf="canManageTests"
                       class="row-menu-btn"
                       matTooltip="More options">
                 <mat-icon>more_horiz</mat-icon>
               </button>
 
               <mat-menu #rowMenu="matMenu" xPosition="before">
-                <button mat-menu-item (click)="runSingleTest(test)">
+                <button mat-menu-item *ngIf="canRunTests" (click)="runSingleTest(test)">
                   <mat-icon color="primary">play_arrow</mat-icon>
                   <span>Run Test</span>
                 </button>
-                <button mat-menu-item (click)="openEditTestDialog(test)">
+                <button mat-menu-item *ngIf="canManageTests" (click)="openEditTestDialog(test)">
                   <mat-icon color="teal">edit</mat-icon>
                   <span>Edit</span>
                 </button>
-                <mat-divider></mat-divider>
-                <button mat-menu-item (click)="deleteTest(test)">
+                <mat-divider *ngIf="canManageTests"></mat-divider>
+                <button mat-menu-item *ngIf="canManageTests" (click)="deleteTest(test)">
                   <mat-icon color="warn">delete</mat-icon>
                   <span>Delete</span>
                 </button>
@@ -244,28 +259,21 @@
     <div class="loading-content-pro">
       
       <div class="loading-header">
-        <!-- Spinner pendant l'exécution -->
         <div class="loading-spinner-wrapper" *ngIf="!isJobCancelled && currentJob && (currentJob.status === 'starting' || currentJob.status === 'running')">
           <mat-spinner diameter="40" color="primary"></mat-spinner>
         </div>
 
-        <!-- Icônes de fin / annulation -->
         <div class="completion-icon" *ngIf="isJobCancelled || (currentJob && (currentJob.status === 'completed' || currentJob.status === 'failed'))">
-          <!-- Icône d'annulation ROUGE UNIQUE -->
           <mat-icon *ngIf="isJobCancelled" class="icon-cancelled">block</mat-icon>
-          <!-- Succès -->
           <mat-icon *ngIf="!isJobCancelled && currentJob && currentJob.failed === 0" class="icon-success">check_circle</mat-icon>
-          <!-- Échec d'assertions -->
           <mat-icon *ngIf="!isJobCancelled && currentJob && currentJob.failed > 0" class="icon-partial">warning</mat-icon>
         </div>
         
-        <!-- Titres selon l'état -->
         <h3 *ngIf="!isJobCancelled && currentJob && (currentJob.status === 'starting' || currentJob.status === 'running')">Running Tests</h3>
         <h3 *ngIf="isJobCancelled">Execution Cancelled</h3>
         <h3 *ngIf="!isJobCancelled && currentJob && currentJob.status === 'completed' && currentJob.failed === 0">All Tests Passed</h3>
         <h3 *ngIf="!isJobCancelled && currentJob && ((currentJob.status === 'completed' && currentJob.failed > 0) || (currentJob.status === 'failed'))">Tests Completed</h3>
         
-        <!-- Sous-titres dynamiques -->
         <p class="loading-subtitle" *ngIf="!isJobCancelled && currentJob && (currentJob.status === 'starting' || currentJob.status === 'running') && currentJob.current_test">
           {{ currentJob.current_test }}
         </p>
@@ -324,7 +332,6 @@
         </div>
       </div>
       
-      <!-- Footer pendant l'exécution : Bouton Stop -->
       <div class="loading-footer" *ngIf="!isJobCancelled && currentJob && (currentJob.status === 'starting' || currentJob.status === 'running')">
         <div class="footer-info">
           <mat-icon>info</mat-icon>
@@ -336,7 +343,6 @@
         </button>
       </div>
 
-      <!-- Actions de fin : View Report (Bleu VEX) & Close -->
       <div class="completion-actions" *ngIf="isJobCancelled || (currentJob && (currentJob.status === 'completed' || currentJob.status === 'failed'))">
         <button mat-flat-button (click)="openReport()" class="report-btn">
           <mat-icon>description</mat-icon>
