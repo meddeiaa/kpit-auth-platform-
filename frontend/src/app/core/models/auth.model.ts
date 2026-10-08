@@ -38,7 +38,10 @@ export interface LoginSuccessResponse {
   success: true;
   message: string;
   user: User;
-   access_token?: string;
+  access_token?: string;
+  // --- LAYER 2 : AI ANOMALY DETECTION ---
+  anomaly_score?: number;
+  is_anomaly?: boolean;
 }
 
 export interface MeResponse {

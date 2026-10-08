@@ -172,13 +172,16 @@ class AsyncRobotRunner:
                 self.processes.pop(job_id, None)
 
     def _parse_line(self, job_id: str, line: str):
+        """Parse la sortie de Robot Framework en temps réel pour mettre à jour l'overlay."""
         with self.jobs_lock:
             job = self.jobs.get(job_id)
-            if not job or job['status'] == 'failed':
+            if not job or job.get('status') == 'failed':
                 return
             
-            if not line or line.startswith('==') or line.startswith('--'): return
-            if 'DevTools' in line or 'ERROR:' in line or 'Created TensorFlow' in line: return
+            if not line or line.startswith('==') or line.startswith('--'):
+                return
+            if 'DevTools' in line or 'ERROR:' in line or 'Created TensorFlow' in line:
+                return
             
             is_pass = '| PASS |' in line
             is_fail = '| FAIL |' in line
@@ -186,14 +189,26 @@ class AsyncRobotRunner:
             if is_pass or is_fail:
                 parts = line.split('|')
                 test_part = parts[0].strip().rstrip('. ').strip()
-                if not test_part.startswith('TC-'): return
-                short_name = test_part.split('::')[0].strip().rstrip('. ').strip()
-                if any(t['name'] == short_name for t in job['tests']): return
+                
+                # RECHERCHE DE 'TC-' N'IMPORTE OÙ DANS LE NOM (Aide à ignorer le nom de la suite)
+                if 'TC-' not in test_part:
+                    return
+                
+                # Extraire le nom à partir de 'TC-'
+                tc_index = test_part.find('TC-')
+                short_name = test_part[tc_index:].split('::')[0].strip().rstrip('. ').strip()
+                
+                # Éviter les doublons de comptage
+                if any(t['name'] == short_name for t in job['tests']):
+                    return
                 
                 status = 'PASS' if is_pass else 'FAIL'
+                
                 job['completed'] += 1
-                if status == 'PASS': job['passed'] += 1
-                else: job['failed'] += 1
+                if status == 'PASS':
+                    job['passed'] += 1
+                else:
+                    job['failed'] += 1
                 
                 job['tests'].append({'name': short_name, 'status': status})
                 icon = '✅' if status == 'PASS' else '❌'
@@ -201,10 +216,15 @@ class AsyncRobotRunner:
                 job['current_test'] = None
                 return
             
+            # Détecter le début d'un test pour afficher le sous-titre "Running..."
             stripped = line.strip()
-            if stripped.startswith('TC-') and '|' not in stripped:
-                test_name = stripped.split('::')[0].strip().rstrip('. ').strip()
-                if test_name: job['current_test'] = test_name     
+            if 'TC-' in stripped and '|' not in stripped:
+                tc_index = stripped.find('TC-')
+                test_name = stripped[tc_index:].split('::')[0].strip().rstrip('. ').strip()
+                if test_name:
+                    job['current_test'] = test_name
+
+        
 
     def _compute_expected_total(self, test_names=None, suite_file=None, include_tags=None, exclude_tags=None) -> int:
         if test_names: return len(test_names)

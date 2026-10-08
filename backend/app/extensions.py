@@ -1,25 +1,22 @@
 """
 Extensions Flask.
-
-Initialisées ici, liées à l'app dans create_app() via init_app().
 """
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-# ORM
-db = SQLAlchemy()
 
-# Migrations
+# ORM & Migrations
+db = SQLAlchemy()
 migrate = Migrate()
 
-# JWT — Layer 1 SECURITY+
+# JWT (Layer 1)
 jwt = JWTManager()
 
-# Rate Limiter (Layer 1) — Identifie les clients par leur adresse IP
+# Rate Limiter (Layer 1)
+# NOTE : default_limits est vide pour ne PAS bloquer le Polling Angular (/status)
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],  # Limites globales par défaut
-    storage_uri="memory://"                         # Stockage en mémoire RAM
+    storage_uri="memory://"
 )

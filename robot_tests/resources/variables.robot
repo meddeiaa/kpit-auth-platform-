@@ -49,7 +49,7 @@ ${ALI_FIRST_NAME}          Ali
 ${ALI_LAST_NAME}           Jarraya
 ${ALI_EMAIL}               ali@kpit.com
 ${ALI_LOGIN}               ali
-${ALI_PASSWORD}            ali_secure_pwd
+${ALI_PASSWORD}            ali123
 ${ALI_ROLE}                viewer
 
 

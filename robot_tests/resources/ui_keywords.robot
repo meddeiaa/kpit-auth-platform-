@@ -1,6 +1,6 @@
 *** Settings ***
 Documentation     UI keywords for KPIT Auth Platform frontend tests.
-...               Pixel-Perfect Side-by-Side Execution Mode with Dynamic Screen Resolution.
+...               Full-Screen Demonstration Mode with Guaranteed Viewport Rendering.
 Library           SeleniumLibrary
 Library           String
 Library           Collections
@@ -11,16 +11,21 @@ Resource          variables.robot
 *** Keywords ***
 
 # =============================================================
-# BROWSER MANAGEMENT (Dynamic Pixel-Perfect Alignment)
+# BROWSER MANAGEMENT (Guaranteed Full-Screen Version)
 # =============================================================
 
 Open Application In Browser
-    [Documentation]    Detects screen resolution dynamically and snaps Chrome
-    ...                perfectly to the right half of the user's display.
+    [Documentation]    Opens Chrome in 100% Full-Screen (1920x1080) with explicit
+    ...                viewport initialization to guarantee Angular Material rendering.
     
     ${chrome_options}=    Evaluate    sys.modules['selenium.webdriver'].ChromeOptions()    sys, selenium.webdriver
 
-    # Options de nettoyage des popups
+    # Force 100% Full Screen Viewport via ChromeOptions
+    Call Method    ${chrome_options}    add_argument    --start-maximized
+    Call Method    ${chrome_options}    add_argument    --window-position\=0,0
+    Call Method    ${chrome_options}    add_argument    --window-size\=1920,1080
+
+    # Clean UI & Anti-Popup flags
     Call Method    ${chrome_options}    add_argument    --disable-notifications
     Call Method    ${chrome_options}    add_argument    --disable-popup-blocking
     Call Method    ${chrome_options}    add_argument    --disable-infobars
@@ -29,7 +34,7 @@ Open Application In Browser
     Call Method    ${chrome_options}    add_argument    --no-default-browser-check
     Call Method    ${chrome_options}    add_argument    --disable-features\=PasswordLeakDetection,SafeBrowsing,LeakDetection
 
-    # Préférences du gestionnaire de mots de passe
+    # Password Manager Preferences
     ${prefs}=    Create Dictionary
     ...    credentials_enable_service=${False}
     ...    profile.password_manager_enabled=${False}
@@ -40,26 +45,27 @@ Open Application In Browser
 
     # Instanciation de Chrome
     Create Webdriver    Chrome    options=${chrome_options}
+    
+    # Force l'initialisation explicite des dimensions
+    Set Window Position    0    0
+    Set Window Size        1920    1080
+    Maximize Browser Window
+
+    # Navigation
     Go To               ${LOGIN_URL}
-
-    # --- CALCUL DYNAMIQUE DE LA RÉSOLUTION D'ÉCRAN ---
-    ${screen_width}=     Evaluate    __import__('ctypes').windll.user32.GetSystemMetrics(0)
-    ${screen_height}=    Evaluate    __import__('ctypes').windll.user32.GetSystemMetrics(1)
-    ${half_width}=       Evaluate    int(${screen_width} / 2)
-
-    # Alignement chirurgical sur la moitié droite sans aucun espace
-    Set Window Position    ${half_width}    0
-    Set Window Size        ${half_width}    ${screen_height}
-
+    
     Set Selenium Implicit Wait    ${IMPLICIT_WAIT}
     Set Selenium Speed            0.2s
-    Log    ✅ Test Browser aligned perfectly to the right half (${half_width}x${screen_height})
+    
+    # Attente explicite du rendu de la page de login Angular
+    Wait Until Page Contains Element    ${USERNAME_FIELD}    timeout=15s
+    Log    ✅ Browser opened successfully in Full-Screen Mode (1920x1080)
 
 
 Close Application Browser
     [Documentation]    Close all browsers opened by Selenium.
     Close All Browsers
-    Log    ✅ Test Browser closed cleanly
+    Log    ✅ Browser closed cleanly
 
 
 # =============================================================
@@ -83,7 +89,7 @@ Fill Login Form
     Input Text                       ${USERNAME_FIELD}    ${username}
     Clear Element Text               ${PASSWORD_FIELD}
     Input Text                       ${PASSWORD_FIELD}    ${password}
-    Log    ✅ Login form filled with username: ${username}
+    Log    ✅ Login form filled for user: ${username}
 
 
 Click Sign In Button

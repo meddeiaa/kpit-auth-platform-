@@ -6,10 +6,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
+
+import { forkJoin, Subscription } from 'rxjs';
+import { User } from '../../core/models/auth.model';
 import { AuthService } from '../../core/services/auth.service';
 import { TestManagementService } from '../../core/services/test-management.service';
-import { User } from '../../core/models/auth.model';
-import { forkJoin, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-welcome',
@@ -27,17 +28,21 @@ export class WelcomeComponent implements OnInit, OnDestroy {
   user: User | null = null;
   loginTime = new Date();
 
-  // Vraies données dynamiques du backend
+  // Données dynamiques du backend
   totalTests = 0;
   totalSuites = 0;
   totalTags = 0;
   isLoadingStats = true;
   
+  // --- LAYER 2 : MACHINE LEARNING ANOMALY SCORE ---
+  anomalyScore = 0.10;  // Valeur par défaut
+  isAnomaly = false;
+  
   private dataSub!: Subscription;
 
   constructor(
     private authService: AuthService,
-    private testService: TestManagementService, // Injection du service
+    private testService: TestManagementService,
     private router: Router
   ) {}
 
@@ -48,12 +53,17 @@ export class WelcomeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Récupérer le dernier score d'anomalie stocké lors du login
+    const storedScore = localStorage.getItem('last_anomaly_score');
+    if (storedScore) {
+      this.anomalyScore = parseFloat(storedScore);
+      this.isAnomaly = this.anomalyScore >= 0.65;
+    }
+
     this.loadRealDashboardData();
   }
 
   loadRealDashboardData(): void {
-    // forkJoin permet de lancer plusieurs requêtes HTTP en parallèle 
-    // et d'attendre que TOUTES soient terminées avant de continuer.
     this.dataSub = forkJoin({
       casesData: this.testService.getAllTestCases(),
       suitesData: this.testService.getSuites()
@@ -82,7 +92,7 @@ export class WelcomeComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.dataSub) {
-      this.dataSub.unsubscribe(); // Éviter les fuites de mémoire
+      this.dataSub.unsubscribe();
     }
   }
 }

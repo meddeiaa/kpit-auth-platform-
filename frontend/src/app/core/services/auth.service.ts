@@ -29,7 +29,7 @@ export class AuthService {
     this.loadUserFromStorage();
   }
 
-  login(credentials: LoginRequest): Observable<LoginSuccessResponse> {
+    login(credentials: LoginRequest): Observable<LoginSuccessResponse> {
     const url = `${this.apiUrl}/auth/login`;
 
     return this.http.post<LoginSuccessResponse>(url, credentials).pipe(
@@ -38,6 +38,10 @@ export class AuthService {
           this.saveUser(response.user);
           if (response.access_token) {
             this.saveToken(response.access_token);
+          }
+          // --- LAYER 2 : Stocker le score d'anomalie IA ---
+          if (response.anomaly_score !== undefined) {
+            localStorage.setItem('last_anomaly_score', response.anomaly_score.toString());
           }
         }
       }),

@@ -10,7 +10,6 @@ Resource          ../resources/ui_keywords.robot
 Test Setup        Open Application In Browser
 Test Teardown     Close Application Browser
 
-
 *** Test Cases ***
 
 # =============================================================
@@ -31,7 +30,6 @@ TC-501 Login Page Should Display All Required Elements
     
     Log    ✅ All login page elements are visible
 
-
 # =============================================================
 # LOGIN - SUCCESS SCENARIO
 # =============================================================
@@ -47,7 +45,6 @@ TC-502 User Can Login With Valid Credentials
     
     # Vérifier le message (nouveau format : "Welcome back, Ahmed!")
     Verify Welcome Message Contains    Welcome back, ${AHMED_FIRST_NAME}
-
 
 # =============================================================
 # LOGIN - ERROR SCENARIOS
@@ -65,7 +62,6 @@ TC-503 Login Should Fail With Wrong Password
     # Vérifier le message d'erreur
     Verify Error Message Is Displayed    Invalid username or password
 
-
 TC-504 Login Should Fail With Unknown User
     [Documentation]    Verify that login fails when username doesn't exist.
     [Tags]             ui    login    error    security
@@ -74,7 +70,6 @@ TC-504 Login Should Fail With Unknown User
     
     Location Should Be    ${LOGIN_URL}
     Verify Error Message Is Displayed    Invalid username or password
-
 
 # =============================================================
 # LOGOUT
@@ -92,7 +87,6 @@ TC-601 User Can Logout Successfully
     
     # Vérifier la redirection
     Verify Redirected To Login
-
 
 # =============================================================
 # COMPLETE E2E JOURNEY
@@ -120,7 +114,6 @@ TC-701 Complete User Journey Login-Welcome-Logout
     
     Log     Complete E2E journey successful!
 
-
 # =============================================================
 # DIFFERENT USERS
 # =============================================================
@@ -133,7 +126,6 @@ TC-801 Sara (Tester Role) Can Login
     Verify Welcome Page Is Displayed
     Verify Welcome Message Contains    Welcome back, ${SARA_FIRST_NAME}
 
-
 TC-802 Ali (Viewer Role) Can Login
     [Documentation]    Verify that Ali (with viewer role) can login.
     [Tags]             ui    login    roles    regression
@@ -141,3 +133,4 @@ TC-802 Ali (Viewer Role) Can Login
     Perform Login    ${ALI_LOGIN}    ${ALI_PASSWORD}
     Verify Welcome Page Is Displayed
     Verify Welcome Message Contains    Welcome back, ${ALI_FIRST_NAME}
+

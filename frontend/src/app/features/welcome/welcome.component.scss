@@ -391,3 +391,50 @@
     }
   }
 }
+/* --- LAYER 2 : AI SECURITY WIDGET VEX STYLES --- */
+.ai-security-card {
+  border-left: 4px solid #4f46e5 !important;
+  
+  &.warning-border {
+    border-left-color: #dc2626 !important;
+  }
+
+  .card-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    mat-icon {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+    }
+  }
+}
+
+.ai-badge {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  
+  &.badge-success {
+    background: #dcfce7;
+    color: #15803d;
+  }
+  
+  &.badge-danger {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+}
+
+.stat-block.block-danger {
+  background: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  
+  .val {
+    color: #dc2626 !important;
+  }
+}

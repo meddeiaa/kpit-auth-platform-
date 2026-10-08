@@ -62,38 +62,49 @@
 
     </div>
 
-    <!-- LIGNE 2 : INFOS ENVIRONNEMENT (Honnête et réel) -->
+       <!-- LIGNE 2 : WIDGET SÉCURITÉ IA (LAYER 2) -->
     <div class="dashboard-middle-row">
-      <div class="vex-card chart-card">
+      <div class="vex-card ai-security-card" [class.warning-border]="isAnomaly">
         <div class="card-header">
-          <h3>Environment Status</h3>
+          <h3>
+            <mat-icon [color]="isAnomaly ? 'warn' : 'primary'">psychology</mat-icon>
+            AI Behavioral Security Status (Isolation Forest ML)
+          </h3>
+          <span class="ai-badge" [class.badge-danger]="isAnomaly" [class.badge-success]="!isAnomaly">
+            {{ isAnomaly ? 'HIGH RISK DETECTED' : 'NORMAL BEHAVIOR' }}
+          </span>
         </div>
         
-        <div class="chart-content" style="padding-top: 20px;">
+        <div class="chart-content" style="padding: 20px 24px;">
           <div class="real-stats-container">
-            <div class="stat-block">
-              <mat-icon color="primary">memory</mat-icon>
+            
+            <!-- Risque Calculé par l'IA -->
+            <div class="stat-block" [class.block-danger]="isAnomaly">
+              <mat-icon [color]="isAnomaly ? 'warn' : 'primary'">security</mat-icon>
               <div class="text">
-                <span class="val">Robot Framework</span>
-                <span class="lbl">Execution Engine Ready</span>
+                <span class="val">{{ (anomalyScore * 100) | number:'1.0-0' }}% Anomaly Risk</span>
+                <span class="lbl">Calculated by Isolation Forest ML</span>
               </div>
             </div>
             
+            <!-- Moteur de Détection -->
             <div class="stat-block">
-              <mat-icon color="accent">local_offer</mat-icon>
+              <mat-icon color="accent">memory</mat-icon>
               <div class="text">
-                <span class="val" *ngIf="!isLoadingStats">{{ totalTags }} Tags</span>
-                <span class="lbl">Available for filtering</span>
+                <span class="val">Scikit-Learn ML Engine</span>
+                <span class="lbl">Real-time Batch Training</span>
               </div>
             </div>
 
-            <div class="stat-block pending-history">
-              <mat-icon>insights</mat-icon>
+            <!-- Statut de la Session -->
+            <div class="stat-block">
+              <mat-icon color="primary">verified_user</mat-icon>
               <div class="text">
-                <span class="val">Historical Analytics</span>
-                <span class="lbl">Database tracking will be activated in upcoming layers.</span>
+                <span class="val">Multi-Factor Analysis</span>
+                <span class="lbl">Time, Frequency & IP Evaluated</span>
               </div>
             </div>
+
           </div>
         </div>
       </div>

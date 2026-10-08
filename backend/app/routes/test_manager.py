@@ -190,47 +190,85 @@ class CancelTestsAsync(Resource):
 # (UNE seule classe report — évite l'écrasement)
 # ============================================
 
+# ============================================
+# ENDPOINTS : RAPPORTS & LOGS ROBOT (Static Artifacts)
+# ============================================
+
 @test_ns.route('/report')
 @test_ns.route('/report.html')
 class TestReport(Resource):
+    """Servir le rapport synthétique HTML (report.html)."""
+    
     @test_ns.doc('get_report')
-    @jwt_required()
-    @roles_required('admin', 'tester', 'viewer')
     def get(self):
+        """
+        Retourne le fichier report.html.
+        Accessible directement par le navigateur pour la visualisation.
+        """
+        import os
+        from flask import send_from_directory
+        
         results_dir = _results_dir()
-        path = os.path.join(results_dir, 'report.html')
-        if os.path.exists(path):
+        report_path = os.path.join(results_dir, 'report.html')
+        
+        if os.path.exists(report_path):
             return send_from_directory(results_dir, 'report.html', mimetype='text/html')
-        return {'success': False, 'error': 'No report available. Run tests first.'}, 404
+        else:
+            return {
+                'success': False,
+                'error': 'No report available. Run tests first.'
+            }, 404
 
 
 @test_ns.route('/log')
 @test_ns.route('/log.html')
 class TestLogFile(Resource):
+    """Servir le journal détaillé pas à pas (log.html)."""
+    
     @test_ns.doc('get_log')
-    @jwt_required()
-    @roles_required('admin', 'tester', 'viewer')
     def get(self):
+        """
+        Retourne le fichier log.html.
+        Accessible pour la navigation bi-directionnelle depuis report.html.
+        """
+        import os
+        from flask import send_from_directory
+        
         results_dir = _results_dir()
-        path = os.path.join(results_dir, 'log.html')
-        if os.path.exists(path):
+        log_path = os.path.join(results_dir, 'log.html')
+        
+        if os.path.exists(log_path):
             return send_from_directory(results_dir, 'log.html', mimetype='text/html')
-        return {'success': False, 'error': 'No log file available. Run tests first.'}, 404
+        else:
+            return {
+                'success': False,
+                'error': 'No log file available. Run tests first.'
+            }, 404
 
 
 @test_ns.route('/artifacts/<string:filename>')
+@test_ns.route('/<string:filename>.png')
 class TestArtifacts(Resource):
+    """Servir les fichiers de preuves et screenshots (ex: .png, output.xml)."""
+    
     @test_ns.doc('get_artifact')
-    @jwt_required()
-    @roles_required('admin', 'tester', 'viewer')
     def get(self, filename):
+        """Retourne un fichier de capture d'écran ou de résultat."""
+        import os
+        from flask import send_from_directory
+        
+        # Sécurité : Éviter la traversée de dossiers (Directory Traversal)
         if '..' in filename or filename.startswith('/'):
             return {'success': False, 'error': 'Invalid filename'}, 400
+            
         results_dir = _results_dir()
-        target = filename if '.' in filename else f'{filename}.png'
-        if os.path.exists(os.path.join(results_dir, target)):
-            return send_from_directory(results_dir, target)
-        return {'success': False, 'error': f'File {target} not found'}, 404
+        target_file = filename if '.' in filename else f"{filename}.png"
+        file_path = os.path.join(results_dir, target_file)
+        
+        if os.path.exists(file_path):
+            return send_from_directory(results_dir, target_file)
+        else:
+            return {'success': False, 'error': f'File {target_file} not found'}, 404
 
 
 # ============================================
