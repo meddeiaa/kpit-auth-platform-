@@ -30,7 +30,7 @@ class AnomalyDetectorService:
         
         return [hour_of_day, day_of_week, success_int, recent_failures]
 
-    def _get_recent_failures_count(self, ip_address: str, minutes=15) -> int:
+    def _get_recent_failures_count(self, ip_address: str, minutes=6) -> int:
         """
         Compte le nombre d'échecs de connexion récents pour cette IP.
         """
@@ -53,9 +53,10 @@ class AnomalyDetectorService:
 
         # 2. Récupérer l'historique des CONNEXIONS RÉUSSIES (Profil Normal)
         # On n'entraîne PAS le modèle sur les attaques pour ne pas polluer l'IA !
-        success_logs = AuditLog.query.filter_by(event='LOGIN_SUCCESS')\
-                                     .order_by(AuditLog.timestamp.desc())\
-                                     .limit(200).all()
+        success_logs = AuditLog.query.filter_by(
+            event='LOGIN_SUCCESS',
+            login_attempted=login_attempted 
+        ).order_by(AuditLog.timestamp.desc()).limit(100).all()      # ← ISOLAT
 
         # Fallback Heuristique si pas assez de connexions réussies enregistrées
         if len(success_logs) < self.min_samples_required:

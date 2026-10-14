@@ -321,3 +321,29 @@
 .cdk-overlay-backdrop.cdk-overlay-transparent-backdrop {
   /* on laisse transparent pour ne pas griser tout le dialog */
 }
+/* =========================================================
+   FIX PERMANENT : Material Icons Ligature & FOUT Prevention
+   Empêche l'affichage du texte brut (lo, pe, vis) si le réseau ralentit
+   ========================================================= */
+mat-icon, 
+.mat-icon {
+  font-family: 'Material Icons' !important;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga';
+  
+  /* SÉCURITÉ ANTI-DÉBORDEMENT : */
+  overflow: hidden !important; 
+  vertical-align: middle;
+}

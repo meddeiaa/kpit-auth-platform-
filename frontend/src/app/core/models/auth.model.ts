@@ -35,14 +35,24 @@ export interface User {
 
 // Réponse du backend pour login (succès)
 export interface LoginSuccessResponse {
-  success: true;
+  success: boolean;
   message: string;
-  user: User;
+  user?: User;
   access_token?: string;
-  // --- LAYER 2 : AI ANOMALY DETECTION ---
+  
+  // --- LAYER 2 & 3 : AI & 2FA EMAIL ---
+  require_2fa?: boolean;
+  login?: string;
+  masked_email?: string;       // ← AJOUT ICI : Corrige l'erreur TypeScript !
   anomaly_score?: number;
   is_anomaly?: boolean;
 }
+
+export interface Verify2FARequest {
+  login: string;
+  otp_code: string;
+}
+
 
 export interface MeResponse {
   success: boolean;

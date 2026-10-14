@@ -4,6 +4,7 @@ Routes d'authentification.
 Layer 0 : register + login
 Layer 1 : bcrypt + JWT + Rate Limiting + Audit Logs
 Layer 2 : Intelligence Artificielle (Isolation Forest Anomaly Detection)
+Layer 3 : Authentification Adaptative au Risque (Risk-Based 2FA / TOTP)
 """
 from flask import request
 from flask_restx import Namespace, Resource, fields
@@ -12,16 +13,16 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from app.extensions import db, limiter
 from app.models import User
 from app.models.audit import AuditLog
+
 from app.services.anomaly_detector import anomaly_detector
+from app.services.email_service import email_service
 
 
-# Helper pour enregistrer dans le journal d'audit avec le Score d'Anomalie IA
 def log_audit_event(event_type, login=None, user_id=None, is_success=False):
     try:
         ip = request.remote_addr or '127.0.0.1'
         ua = request.headers.get('User-Agent', '')[:255]
         
-        # --- LAYER 2 : Évaluation Comportementale par Machine Learning ---
         score, is_anomaly = anomaly_detector.evaluate_connection(
             login_attempted=login or 'unknown',
             ip_address=ip,
@@ -49,7 +50,7 @@ def log_audit_event(event_type, login=None, user_id=None, is_success=False):
 
 auth_ns = Namespace(
     'auth',
-    description='Authentication endpoints with AI Anomaly Detection'
+    description='Authentication endpoints with Risk-Based Adaptive 2FA'
 )
 
 register_model = auth_ns.model('RegisterRequest', {
@@ -64,6 +65,12 @@ register_model = auth_ns.model('RegisterRequest', {
 login_model = auth_ns.model('LoginRequest', {
     'login': fields.String(required=True, example='ahmed'),
     'password': fields.String(required=True, example='ahmed123')
+})
+
+# NOUVEAU MODÈLE POUR LA VÉRIFICATION 2FA
+verify_2fa_model = auth_ns.model('Verify2FARequest', {
+    'login': fields.String(required=True, description='Username', example='ahmed'),
+    'otp_code': fields.String(required=True, description='6-digit 2FA OTP code', example='123456')
 })
 
 
@@ -96,12 +103,12 @@ class Register(Resource):
             role=data.get('role', 'viewer') or 'viewer'
         )
         new_user.set_password(data['password'])
+        new_user.generate_otp_secret() # Génère sa clé secrète 2FA dès l'inscription
 
         try:
             db.session.add(new_user)
             db.session.commit()
             
-            # Audit log de création
             log_audit_event('REGISTER_SUCCESS', login=new_user.login, user_id=new_user.id, is_success=True)
             
         except Exception as e:
@@ -119,7 +126,7 @@ class Register(Resource):
 class Login(Resource):
     @auth_ns.expect(login_model, validate=False)
     @auth_ns.doc('login_user')
-    @limiter.limit("30 per minute")  # 10 essais / min par IP
+    @limiter.limit("30 per minute")
     def post(self):
         data = request.get_json() or {}
         login_input = data.get('login')
@@ -131,7 +138,7 @@ class Login(Resource):
 
         user = User.query.filter_by(login=login_input).first()
 
-        # ÉCHEC DE CONNEXION
+        # 1. Vérification du mot de passe
         if not user or not user.check_password(password_input):
             score, is_anomaly = log_audit_event('LOGIN_FAILED', login=login_input, user_id=user.id if user else None, is_success=False)
             return {
@@ -141,7 +148,6 @@ class Login(Resource):
                 'is_anomaly': is_anomaly
             }, 401
 
-        # COMPTE DÉSACTIVÉ
         if not user.is_active:
             score, is_anomaly = log_audit_event('LOGIN_DISABLED_ACCOUNT', login=login_input, user_id=user.id, is_success=False)
             return {
@@ -151,9 +157,35 @@ class Login(Resource):
                 'is_anomaly': is_anomaly
             }, 403
 
-        # SUCCÈS DE CONNEXION + ÉVALUATION IA
+        # 2. Évaluation de la sécurité par l'IA (Layer 2)
         score, is_anomaly = log_audit_event('LOGIN_SUCCESS', login=login_input, user_id=user.id, is_success=True)
-        
+
+        # S'assurer que l'utilisateur possède un secret 2FA
+        if not user.otp_secret:
+            user.generate_otp_secret()
+            db.session.commit()
+
+        # 3. LAYER 3 : DÉCISION ADAPTATIVE AU RISQUE (Risk-Based 2FA)
+        if is_anomaly or score >= 0.65:
+            current_otp = user.get_totp().now()
+            email_service.send_otp_email(
+                recipient_email=user.email,
+                otp_code=current_otp,
+                user_name=user.full_name
+            )
+            
+            return {
+                'success': True,
+                'require_2fa': True,
+                'message': 'High risk connection detected. 2FA Verification code sent to your email.',
+                'login': user.login,
+                'masked_email': mask_email(user.email), # e.g. a***d@kpit.com
+                'anomaly_score': score,
+                'is_anomaly': True
+                # 🔒 NOTE : Plus de code OTP en clair dans la réponse JSON !
+            }, 200
+
+        # Connexion Normale (Score Faible) : Délivrer le JWT immédiatement
         access_token = create_access_token(
             identity=str(user.id),
             additional_claims={'login': user.login, 'role': user.role}
@@ -161,11 +193,52 @@ class Login(Resource):
 
         return {
             'success': True,
+            'require_2fa': False,
             'message': f'Welcome {user.full_name}!',
             'access_token': access_token,
             'user': user.to_dict(),
-            'anomaly_score': score,       # ← ENVOYÉ À ANGULAR
-            'is_anomaly': is_anomaly     # ← ENVOYÉ À ANGULAR
+            'anomaly_score': score,
+            'is_anomaly': False
+        }, 200
+
+
+@auth_ns.route('/verify-2fa')
+class Verify2FA(Resource):
+    """Endpoint pour valider le code OTP à 6 chiffres lors d'une alerte IA."""
+
+    @auth_ns.expect(verify_2fa_model)
+    @auth_ns.doc('verify_2fa')
+    def post(self):
+        data = request.get_json() or {}
+        login_input = data.get('login')
+        otp_code = data.get('otp_code')
+
+        if not login_input or not otp_code:
+            return {'success': False, 'error': 'Login and OTP code are required'}, 400
+
+        user = User.query.filter_by(login=login_input).first()
+
+        if not user:
+            return {'success': False, 'error': 'User not found'}, 404
+
+        # Vérification du code TOTP via pyotp
+        if not user.verify_otp(otp_code):
+            log_audit_event('2FA_FAILED', login=login_input, user_id=user.id, is_success=False)
+            return {'success': False, 'error': 'Invalid or expired 2FA code'}, 401
+
+        # Code 2FA Valide ➔ Délivrer le Token JWT final
+        log_audit_event('2FA_SUCCESS', login=login_input, user_id=user.id, is_success=True)
+
+        access_token = create_access_token(
+            identity=str(user.id),
+            additional_claims={'login': user.login, 'role': user.role}
+        )
+
+        return {
+            'success': True,
+            'message': '2FA verification successful!',
+            'access_token': access_token,
+            'user': user.to_dict()
         }, 200
 
 
@@ -191,3 +264,58 @@ class Me(Resource):
             'success': True,
             'user': user.to_dict()
         }, 200
+
+
+
+def mask_email(email: str) -> str:
+    """Masque un email (ex: ahmed@kpit.com -> a***d@kpit.com)."""
+    if not email or '@' not in email:
+        return '***@***.com'
+    parts = email.split('@')
+    name = parts[0]
+    domain = parts[1]
+    masked_name = name[0] + '***' + name[-1] if len(name) > 2 else name[0] + '***'
+    return f"{masked_name}@{domain}"    
+# Modèle Swagger pour le renvoi 2FA
+resend_2fa_model = auth_ns.model('Resend2FARequest', {
+    'login': fields.String(required=True, description='Username', example='ahmed')
+})
+
+
+@auth_ns.route('/resend-2fa')
+class Resend2FA(Resource):
+    """Endpoint pour renvoyer un nouveau code 2FA par e-mail."""
+
+    @auth_ns.expect(resend_2fa_model)
+    @auth_ns.doc('resend_2fa')
+    @limiter.limit("3 per minute")  # Max 3 renvois par minute par IP
+    def post(self):
+        data = request.get_json() or {}
+        login_input = data.get('login')
+
+        if not login_input:
+            return {'success': False, 'error': 'Username is required'}, 400
+
+        user = User.query.filter_by(login=login_input).first()
+
+        if not user:
+            return {'success': False, 'error': 'User not found'}, 404
+
+        # Générer le nouveau code OTP courant
+        current_otp = user.get_totp().now()
+
+        # Renvoyer l'email Brevo
+        email_service.send_otp_email(
+            recipient_email=user.email,
+            otp_code=current_otp,
+            user_name=user.full_name
+        )
+
+        log_audit_event('2FA_RESENT', login=login_input, user_id=user.id, is_success=True)
+
+        return {
+            'success': True,
+            'message': 'A new 2FA verification code has been sent to your email.'
+        }, 200
+
+    

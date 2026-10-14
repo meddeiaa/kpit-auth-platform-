@@ -3,6 +3,9 @@ Configuration Flask selon l'environnement.
 """
 import os
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Config:

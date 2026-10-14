@@ -132,4 +132,27 @@ export class AuthService {
     console.error('AuthService error:', errorMessage);
     return throwError(() => new Error(errorMessage));
   }
+   /**
+   * Vérifier le code 2FA / OTP lors d'une connexion suspecte.
+   */
+  verify2FA(login: string, otpCode: string): Observable<LoginSuccessResponse> {
+    const url = `${this.apiUrl}/auth/verify-2fa`;
+    
+    return this.http.post<LoginSuccessResponse>(url, { login, otp_code: otpCode }).pipe(
+      tap(response => {
+        if (response.success && response.access_token && response.user) {
+          this.saveUser(response.user);
+          this.saveToken(response.access_token);
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  resend2FA(login: string): Observable<{ success: boolean; message: string }> {
+    const url = `${this.apiUrl}/auth/resend-2fa`;
+    return this.http.post<{ success: boolean; message: string }>(url, { login }).pipe(
+      catchError(this.handleError)
+    );
+  }
 }

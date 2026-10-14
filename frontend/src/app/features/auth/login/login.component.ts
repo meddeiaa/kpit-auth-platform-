@@ -1,22 +1,25 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Component, HostListener, OnInit, OnDestroy } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from "@angular/forms";
+import { Router } from "@angular/router";
 
-// Angular Material imports
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatCardModule } from "@angular/material/card";
+import { MatFormFieldModule } from "@angular/material/form-field";
+import { MatInputModule } from "@angular/material/input";
+import { MatButtonModule } from "@angular/material/button";
+import { MatIconModule } from "@angular/material/icon";
+import { MatProgressBarModule } from "@angular/material/progress-bar";
+import { MatSnackBar, MatSnackBarModule } from "@angular/material/snack-bar";
 
-// Services et modèles
-import { AuthService } from '../../../core/services/auth.service';
-import { LoginRequest } from '../../../core/models/auth.model';
+import { AuthService } from "../../../core/services/auth.service";
 
 @Component({
-  selector: 'app-login',
+  selector: "app-login",
   standalone: true,
   imports: [
     CommonModule,
@@ -26,75 +29,249 @@ import { LoginRequest } from '../../../core/models/auth.model';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule
+    MatProgressBarModule,
+    MatSnackBarModule,
   ],
-  templateUrl: './login.component.html',
-  styleUrl: './login.component.scss'
+  templateUrl: "./login.component.html",
+  styleUrl: "./login.component.scss",
 })
-export class LoginComponent {
-  loginForm: FormGroup;
-  hidePassword = true;
-  errorMessage = '';
+export class LoginComponent implements OnInit, OnDestroy {
+  loginForm!: FormGroup;
+  otpForm!: FormGroup;
+
+  step: "credentials" | "2fa" = "credentials";
   isLoading = false;
+  hidePassword = true;
+  errorMessage = "";
+
+  // Couche d’interface de la lampe : aucun changement du flux AuthService.
+  lampPulled = false;
+  lampLit = false;
+  lampProgress = 0;
+  private lampGrabbed = false;
+  private lampStartY = 0;
+  private readonly lampPullDistance = 112;
+  private lampRevealTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Données de sécurité 2FA
+  pendingLogin = "";
+  maskedEmail = "";
+  anomalyScore = 0;
+
+  // Compte à rebours 2FA
+  countdown = 60;
+  timerInterval: ReturnType<typeof setInterval> | null = null;
+  canResend = false;
 
   constructor(
     private fb: FormBuilder,
+    private authService: AuthService,
     private router: Router,
-    private authService: AuthService  // ← NOUVEAU : Injection du service
-  ) {
-    this.loginForm = this.fb.group({
-      login: ['', [Validators.required, Validators.minLength(3)]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
-    });
-  }
+    private snackBar: MatSnackBar,
+  ) {}
 
-  onSubmit(): void {
-    if (this.loginForm.invalid) {
-      this.errorMessage = 'Please fill in all fields correctly';
-      this.markFormFieldsAsTouched();
+  ngOnInit(): void {
+    if (this.authService.isAuthenticated()) {
+      this.router.navigate(["/welcome"]);
       return;
     }
 
-    // Réinitialiser l'état
+    this.loginForm = this.fb.group({
+      login: ["", [Validators.required]],
+      password: ["", [Validators.required]],
+    });
+
+    this.otpForm = this.fb.group({
+      otpCode: [
+        "",
+        [Validators.required, Validators.minLength(6), Validators.maxLength(6)],
+      ],
+    });
+  }
+
+  /** Début du geste de traction vers le bas. */
+  startLampPull(event: PointerEvent): void {
+    if (this.lampPulled) return;
+    this.lampGrabbed = true;
+    this.lampStartY = event.clientY;
+    (event.currentTarget as HTMLElement | null)?.setPointerCapture?.(
+      event.pointerId,
+    );
+    event.preventDefault();
+  }
+
+  @HostListener("document:pointermove", ["$event"])
+  moveLampPull(event: PointerEvent): void {
+    if (!this.lampGrabbed || this.lampPulled) return;
+
+    const distance = Math.max(0, event.clientY - this.lampStartY);
+    this.lampProgress = Math.min(distance / this.lampPullDistance, 1);
+  }
+
+  @HostListener("document:pointerup")
+  finishLampPull(): void {
+    if (!this.lampGrabbed) return;
+    this.lampGrabbed = false;
+
+    if (this.lampProgress >= 0.78) {
+      this.revealLogin();
+    } else {
+      this.lampProgress = 0;
+    }
+  }
+
+  /** Alternative accessible au geste tactile : Enter/Espace sur la lampe. */
+  activateLampFromKeyboard(event: KeyboardEvent): void {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      this.revealLogin();
+    }
+  }
+
+  /** Relâchement validé : la lampe s’allume avant de révéler la zone protégée. */
+  private revealLogin(): void {
+    if (this.lampPulled) return;
+
+    this.lampProgress = 1;
+    this.lampGrabbed = false;
+    this.lampLit = true;
+
+    this.lampRevealTimer = setTimeout(() => {
+      this.lampPulled = true;
+      this.lampRevealTimer = null;
+    }, 360);
+  }
+
+  /** Permet de masquer le formulaire sans toucher à l’état d’authentification. */
+  hideLogin(): void {
+    if (this.isLoading) return;
+    if (this.lampRevealTimer) {
+      clearTimeout(this.lampRevealTimer);
+      this.lampRevealTimer = null;
+    }
+    this.lampPulled = false;
+    this.lampLit = false;
+    this.lampProgress = 0;
+    this.lampGrabbed = false;
+  }
+
+  // ÉTAPE 1 : Connexion Login/Password — conservée telle quelle.
+  onSubmitLogin(): void {
+    if (this.loginForm.invalid) return;
+
     this.isLoading = true;
-    this.errorMessage = '';
+    this.errorMessage = "";
 
-    // Préparer les credentials
-    const credentials: LoginRequest = {
-      login: this.loginForm.value.login,
-      password: this.loginForm.value.password
-    };
-
-    console.log('🔐 Attempting login for:', credentials.login);
-
-    // Appeler le service (vraie requête HTTP à Flask !)
-    this.authService.login(credentials).subscribe({
-      next: (response) => {
-        // ✅ SUCCÈS
-        console.log('✅ Login successful:', response);
+    this.authService.login(this.loginForm.value).subscribe({
+      next: (res) => {
         this.isLoading = false;
-        this.router.navigate(['/welcome']);
+
+        if (res.require_2fa) {
+          this.step = "2fa";
+          this.pendingLogin = res.login || this.loginForm.value.login;
+          this.anomalyScore = res.anomaly_score || 0.85;
+          this.maskedEmail = res.masked_email || "your email";
+          this.otpForm.reset();
+          this.startTimer();
+        } else if (res.success) {
+          this.router.navigate(["/welcome"]);
+        }
       },
-      error: (error) => {
-        // ❌ ERREUR
-        console.error('❌ Login failed:', error);
+      error: (err) => {
         this.isLoading = false;
-        this.errorMessage = error.message || 'Login failed. Please try again.';
+        this.errorMessage = err.message || "Invalid username or password";
+      },
+    });
+  }
+
+  // ÉTAPE 2 : Validation du code OTP — conservée telle quelle.
+  onSubmitOTP(): void {
+    if (this.otpForm.invalid) return;
+
+    this.isLoading = true;
+    this.errorMessage = "";
+    const otpCode = this.otpForm.value.otpCode;
+
+    this.authService.verify2FA(this.pendingLogin, otpCode).subscribe({
+      next: (res) => {
+        this.isLoading = false;
+        if (res.success) {
+          this.stopTimer();
+          this.router.navigate(["/welcome"]);
+        }
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = err.message || "Invalid or expired 2FA code";
+      },
+    });
+  }
+
+  onResendOTP(): void {
+    if (!this.canResend || this.isLoading) return;
+
+    this.isLoading = true;
+    this.errorMessage = "";
+
+    this.authService.resend2FA(this.pendingLogin).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.otpForm.reset();
+        this.startTimer();
+        this.snackBar.open(
+          "A new 2FA code has been sent to your email!",
+          "Close",
+          {
+            duration: 4000,
+            panelClass: ["snackbar-success"],
+            horizontalPosition: "right",
+            verticalPosition: "top",
+          },
+        );
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = err.message || "Failed to resend 2FA code";
+      },
+    });
+  }
+
+  startTimer(): void {
+    this.stopTimer();
+    this.countdown = 60;
+    this.canResend = false;
+
+    this.timerInterval = setInterval(() => {
+      if (this.countdown > 0) {
+        this.countdown--;
+      } else {
+        this.canResend = true;
+        this.stopTimer();
       }
-    });
+    }, 1000);
   }
 
-  private markFormFieldsAsTouched(): void {
-    Object.keys(this.loginForm.controls).forEach(key => {
-      this.loginForm.get(key)?.markAsTouched();
-    });
+  stopTimer(): void {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
   }
 
-  get loginField() {
-    return this.loginForm.get('login');
+  get formattedTimer(): string {
+    const minutes = Math.floor(this.countdown / 60);
+    const seconds = this.countdown % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   }
 
-  get passwordField() {
-    return this.loginForm.get('password');
+  backToLogin(): void {
+    this.stopTimer();
+    this.step = "credentials";
+    this.errorMessage = "";
+  }
+
+  ngOnDestroy(): void {
+    this.stopTimer();
+    if (this.lampRevealTimer) clearTimeout(this.lampRevealTimer);
   }
 }
