@@ -5,6 +5,11 @@ import { Observable } from 'rxjs';
 import { switchMap, takeWhile, catchError } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
+export interface AIGenerateResponse {
+  generated_code: string;
+  code: string;
+  provider: string;
+}
 import {
   SuitesResponse,
   TestCasesResponse,
@@ -100,5 +105,20 @@ pollJobStatus(jobId: string, intervalMs: number = 500): Observable<JobStatusResp
 cancelJob(jobId: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/run/cancel/${jobId}`, {});
   }
+
+generateTestWithAI(requirement: string, testName: string = '', targetSuite: string = '03_ui_tests.robot'): Observable<AIGenerateResponse> {
+  return this.http.post<AIGenerateResponse>(`${this.apiUrl}/generate`, {
+    requirement,
+    test_name: testName,
+    target_suite: targetSuite
+  });
+}
+
+saveGeneratedTest(filename: string, content: string): Observable<{ message: string; file_path: string }> {
+  return this.http.post<{ message: string; file_path: string }>(
+    `${this.apiUrl}/save-generated`,
+    { filename, content }
+  );
+}
 
 }

@@ -22,6 +22,10 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     # Plus tard : JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
 
+    # --- LLM / IA Generator (Layer 3) ---
+    LLM_PROVIDER = os.getenv('LLM_PROVIDER', 'groq')
+    GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
+
     JSON_SORT_KEYS = False
     RESTX_MASK_SWAGGER = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False

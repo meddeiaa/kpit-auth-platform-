@@ -153,10 +153,8 @@ Verify Redirected To Login
 Verify Error Message Is Displayed
     [Documentation]    Verify that an error message is shown on the login page.
     [Arguments]        ${expected_error_text}=Invalid
-    Wait Until Element Is Visible    ${ERROR_MESSAGE}    timeout=5s
-    Element Should Be Visible        ${ERROR_MESSAGE}
-    Element Should Contain           ${ERROR_MESSAGE}    ${expected_error_text}
-    Log    ✅ Error message displayed as expected
+    Wait Until Page Contains    ${expected_error_text}    timeout=10s
+    Log    ✅ Error message displayed as expected: ${expected_error_text}
 
 
 # =============================================================

@@ -347,3 +347,11 @@ mat-icon,
   overflow: hidden !important; 
   vertical-align: middle;
 }
+/* Nettoyage du conteneur VEX Dialog pour éviter le scrollbar horizontal */
+.vex-dialog-panel {
+  .mat-mdc-dialog-container .mdc-dialog__surface {
+    padding: 0 !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+  }
+}

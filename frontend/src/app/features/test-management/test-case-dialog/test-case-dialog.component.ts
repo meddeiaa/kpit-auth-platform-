@@ -1,94 +1,173 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 
-// Material Modules
+import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatMenuModule } from '@angular/material/menu';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-import { TestCase } from '../../../core/models/test.model';
-
-export interface TestCaseDialogData {
-  mode: 'add' | 'edit';
-  suiteName?: string;
-  suites: string[];
-  availableTags: string[];
-  testCase?: TestCase;
-}
+import { TestManagementService } from '../../../core/services/test-management.service';
 
 @Component({
   selector: 'app-test-case-dialog',
   standalone: true,
   imports: [
     CommonModule,
-    ReactiveFormsModule,
+    FormsModule,
     MatDialogModule,
+    MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatButtonModule,
     MatIconModule,
-    MatDividerModule,
-    MatMenuModule
+    MatTabsModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule
   ],
   templateUrl: './test-case-dialog.component.html',
   styleUrl: './test-case-dialog.component.scss'
 })
 export class TestCaseDialogComponent implements OnInit {
-  form!: FormGroup;
-  isEditMode: boolean;
+  isEditMode = false;
+
+  /** Doit être bindé avec [(selectedIndex)] sur mat-tab-group */
+  selectedTabIndex = 0;
+
+  // Manual
+  suiteName = '';
+  testName = '';
+  documentation = '';
+  selectedTags: string[] = [];
+  suites: string[] = [];
+  availableTags: string[] = [];
+
+  // AI Generator
+  aiRequirement = '';
+  isGenerating = false;
+  isSavingAI = false;
+  generatedCode = '';
+  aiProvider = 'groq';
+  aiTargetSuite = '';
+  customSuiteName = '';
+  aiTestName = 'TC-AI-01 Test Case';
 
   constructor(
-    private fb: FormBuilder,
     public dialogRef: MatDialogRef<TestCaseDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: TestCaseDialogData
-  ) {
-    this.isEditMode = data.mode === 'edit';
-  }
+    @Inject(MAT_DIALOG_DATA) public data: any,
+    private testService: TestManagementService,
+    private snackBar: MatSnackBar
+  ) {}
 
   ngOnInit(): void {
-    const test = this.data.testCase;
-    
-    this.form = this.fb.group({
-      suiteName: [
-        { value: this.data.suiteName || test?.file_name || this.data.suites[0], disabled: this.isEditMode },
-        [Validators.required]
-      ],
-      name: [test ? this.cleanTestName(test.name) : '', [Validators.required, Validators.minLength(3)]],
-      documentation: [test?.documentation || '', [Validators.required]],
-      tags: [test?.tags || ['custom'], [Validators.required]]
-    });
-  }
+    this.isEditMode = this.data?.mode === 'edit';
+    this.suites = this.data?.suites || [];
+    this.availableTags = this.data?.availableTags || [];
+    this.suiteName = this.data?.suiteName || (this.suites.length ? this.suites[0] : '');
 
-  private cleanTestName(fullName: string): string {
-    return fullName.replace(/^TC-\d+\s*/, '');
-  }
+    // Initialisation de la suite cible pour la génération IA
+    this.aiTargetSuite = this.suites.length ? this.suites[0] : 'NEW_SUITE';
+    if (this.aiTargetSuite === 'NEW_SUITE') {
+      this.customSuiteName = '03_ai_generated_tests.robot';
+    }
 
-  onSubmit(): void {
-    if (this.form.valid) {
-      const rawValues = this.form.getRawValue();
-      this.dialogRef.close({
-        suiteName: rawValues.suiteName,
-        data: {
-          name: rawValues.name,
-          documentation: rawValues.documentation,
-          tags: rawValues.tags
-        }
-      });
+    if (this.isEditMode && this.data?.testCase) {
+      this.testName = this.data.testCase.name || '';
+      this.documentation = this.data.testCase.documentation || '';
+      this.selectedTags = [...(this.data.testCase.tags || [])];
+      this.suiteName = this.data.testCase.file_name || this.suiteName;
     }
   }
 
-  onReset(): void {
-    this.form.reset();
+  isValidManualForm(): boolean {
+    return !!(this.testName && this.testName.trim() && this.suiteName);
   }
 
-  onCancel(): void {
-    this.dialogRef.close(null);
+  onSaveManual(): void {
+    if (!this.isValidManualForm()) return;
+    this.dialogRef.close({
+      type: 'manual',
+      suiteName: this.suiteName,
+      data: {
+        name: this.testName.trim(),
+        documentation: (this.documentation || '').trim(),
+        tags: this.selectedTags
+      }
+    });
+  }
+
+  generateWithAI(): void {
+  if (!this.aiRequirement || !this.aiRequirement.trim()) {
+    this.snackBar.open('Veuillez saisir un besoin ou une fonctionnalité', 'Fermer', { duration: 3000 });
+    return;
+  }
+
+  this.isGenerating = true;
+  this.testService.generateTestWithAI(this.aiRequirement, this.aiTestName, this.aiTargetSuite).subscribe({
+    next: (res) => {
+      // Attribution à la vraie variable du composant : generatedCode
+      this.generatedCode = res.generated_code || res.code;
+      this.isGenerating = false;
+      this.snackBar.open(`Script généré avec succès (${res.provider})`, 'Fermer', { duration: 3000 });
+    },
+    error: (err) => {
+      this.isGenerating = false;
+      this.snackBar.open('Erreur lors de la génération IA', 'Fermer', { duration: 3000 });
+    }
+  });
+}
+
+  onSaveAIGenerated(): void {
+    if (!this.generatedCode || this.isSavingAI) return;
+
+    this.isSavingAI = true;
+
+    // Détermination du nom de fichier de suite de destination
+    let targetFile = this.aiTargetSuite;
+    if (this.aiTargetSuite === 'NEW_SUITE') {
+      targetFile = (this.customSuiteName || '').trim() || '03_ai_generated_tests.robot';
+    }
+    if (!targetFile.endsWith('.robot')) {
+      targetFile += '.robot';
+    }
+
+    this.testService.saveGeneratedTest(targetFile, this.generatedCode).subscribe({
+      next: () => {
+        this.isSavingAI = false;
+        this.snackBar.open(`Saved to suite: ${targetFile}`, 'Close', {
+          duration: 3500,
+          panelClass: ['snackbar-success']
+        });
+        // Type ai_saved → le composant parent appelle loadTests()
+        this.dialogRef.close({ type: 'ai_saved', filename: targetFile });
+      },
+      error: (err) => {
+        this.isSavingAI = false;
+        const msg = err?.error?.message || 'Failed to save generated script.';
+        this.snackBar.open(msg, 'Close', {
+          duration: 5000,
+          panelClass: ['snackbar-error']
+        });
+      }
+    });
+  }
+
+  clearAI(): void {
+    this.aiRequirement = '';
+    this.generatedCode = '';
+    this.aiProvider = 'groq';
+    this.aiTestName = 'TC-AI-01 Test Case';
+  }
+
+  copyCode(): void {
+    if (!this.generatedCode) return;
+    navigator.clipboard.writeText(this.generatedCode).then(() => {
+      this.snackBar.open('Script copied to clipboard', 'Close', { duration: 2000 });
+    });
   }
 }

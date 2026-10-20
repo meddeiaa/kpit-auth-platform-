@@ -103,6 +103,10 @@ export class TestManagementComponent implements OnInit, OnDestroy {
   
   // Résultats
   lastResults: RunTestsResponse | null = null;
+  aiRequirement: string = '';
+isGenerating: boolean = false;
+generatedCode: string = '';
+aiProvider: string = 'groq';
 
   constructor(
     private testService: TestManagementService,
@@ -509,23 +513,34 @@ export class TestManagementComponent implements OnInit, OnDestroy {
 
   // ============ CRUD OPERATIONS ============
 
-  openAddTestDialog(defaultSuite?: string): void {
+        openAddTestDialog(): void {
     const dialogRef = this.dialog.open(TestCaseDialogComponent, {
-      width: '520px',
+      width: '620px',
       maxWidth: '95vw',
-      autoFocus: 'first-heading',
+      autoFocus: false,
       restoreFocus: true,
       panelClass: 'vex-dialog-panel',
       data: {
         mode: 'add',
-        suiteName: defaultSuite || this.suites[0],
-        suites: this.suites,
-        availableTags: this.availableTags.length ? this.availableTags : ['smoke', 'regression', 'api', 'ui', 'custom']
+        suiteName: (this.suites && this.suites.length ? this.suites[0] : ''),
+        suites: this.suites || [],
+        availableTags: this.availableTags && this.availableTags.length 
+          ? this.availableTags 
+          : ['smoke', 'regression', 'api', 'ui', 'custom']
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
+      if (!result) return;
+
+      // 1. Si le test a été généré et sauvegardé via l'IA (Groq)
+      if (result.type === 'ai_saved') {
+        this.loadTests();
+        return;
+      }
+
+      // 2. Si le test a été créé manuellement
+      if (result.type === 'manual' || result.suiteName) {
         this.isLoading = true;
         this.testService.addTestCase(result.suiteName, result.data).subscribe({
           next: () => {
@@ -543,18 +558,20 @@ export class TestManagementComponent implements OnInit, OnDestroy {
 
   openEditTestDialog(test: TestCase): void {
     const dialogRef = this.dialog.open(TestCaseDialogComponent, {
-      width: '520px',
-      maxWidth: '95vw',
-      autoFocus: 'first-heading',
-      restoreFocus: true,
-      panelClass: 'vex-dialog-panel',
-      data: {
-        mode: 'edit',
-        testCase: test,
-        suites: this.suites,
-        availableTags: this.availableTags
-      }
-    });
+  width: '680px',
+  maxWidth: '95vw',
+  autoFocus: false,
+  restoreFocus: true,
+  panelClass: 'vex-dialog-panel',
+  data: {
+    mode: 'add',
+    suiteName: (this.suites && this.suites.length ? this.suites[0] : ''),
+    suites: this.suites,
+    availableTags: this.availableTags.length
+      ? this.availableTags
+      : ['smoke', 'regression', 'api', 'ui', 'custom']
+  }
+});
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
@@ -599,4 +616,79 @@ export class TestManagementComponent implements OnInit, OnDestroy {
       });
     });
   }
+  /**
+ * Lance la génération du test par IA (Groq / Llama-3)
+ */
+generateTestWithAI(): void {
+  if (!this.aiRequirement || this.aiRequirement.trim() === '') {
+    this.snackBar.open('Veuillez saisir une exigence fonctionnelle.', 'Fermer', {
+      duration: 3000,
+      panelClass: ['snackbar-warning']
+    });
+    return;
+  }
+
+  this.isGenerating = true;
+  this.generatedCode = '';
+
+  const defaultTestName = `TC_AI_${Date.now()}`;
+
+  this.testService.generateTestWithAI(this.aiRequirement, defaultTestName).subscribe({
+    next: (res) => {
+      this.isGenerating = false;
+      if (res && res.code) {
+        this.generatedCode = res.code;
+        this.aiProvider = res.provider || 'groq';
+        this.snackBar.open(`Script généré avec succès via ${res.provider.toUpperCase()} !`, 'Fermer', {
+          duration: 4000,
+          panelClass: ['snackbar-success']
+        });
+      } else {
+        this.snackBar.open('Erreur: Aucun code généré par l\'IA.', 'Fermer', {
+          duration: 4000,
+          panelClass: ['snackbar-error']
+        });
+      }
+    },
+    error: (err) => {
+      this.isGenerating = false;
+      console.error('Erreur génération IA:', err);
+      const msg = err.error?.message || 'Erreur lors de la génération par IA.';
+      this.snackBar.open(msg, 'Fermer', {
+        duration: 5000,
+        panelClass: ['snackbar-error']
+      });
+    }
+  });
+}
+
+/**
+ * Enregistre le script généré dans le répertoire du projet et rafraîchit la liste des tests
+ */
+
+saveGeneratedTest(): void {
+  if (!this.generatedCode) return;
+
+  const fileName = `test_ai_${Date.now()}.robot`;
+
+  this.testService.saveGeneratedTest(fileName, this.generatedCode).subscribe({
+    next: (res) => {
+      this.snackBar.open(`Fichier ${fileName} sauvegardé !`, 'Fermer', {
+        duration: 4000,
+        panelClass: ['snackbar-success']
+      });
+      this.generatedCode = '';
+      this.aiRequirement = '';
+      // Rafraîchir la liste des tests pour faire apparaître le nouveau fichier
+      this.loadTests(); // <--- Corrigé ici
+    },
+    error: (err) => {
+      console.error('Erreur sauvegarde script:', err);
+      this.snackBar.open('Impossible d\'enregistrer le fichier de test.', 'Fermer', {
+        duration: 4000,
+        panelClass: ['snackbar-error']
+      });
+    }
+  });
+}
 }

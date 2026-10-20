@@ -6,7 +6,7 @@ Layer 1 — SECURITY+ :
 - AuthZ : @roles_required(...) selon la matrice admin / tester / viewer
 """
 import os
-from flask import request, send_from_directory
+from flask import request, send_from_directory, current_app
 from flask_restx import Namespace, Resource, fields
 from flask_jwt_extended import jwt_required
 
@@ -33,6 +33,17 @@ test_case_model = test_ns.model('TestCaseRequest', {
     'name': fields.String(required=True, description='Test name'),
     'documentation': fields.String(description='Description'),
     'tags': fields.List(fields.String, description='Tags'),
+})
+
+# Modèles Swagger pour la génération LLM
+generate_test_model = test_ns.model('GenerateTestRequest', {
+    'requirement': fields.String(required=True, description='Exigence fonctionnelle en langage naturel'),
+    'test_name': fields.String(required=False, description='Nom du TestCase', default='AI Generated Test')
+})
+
+save_test_model = test_ns.model('SaveTestRequest', {
+    'filename': fields.String(required=True, description='Nom du fichier (ex: test_login_ai.robot)'),
+    'content': fields.String(required=True, description='Contenu Robot Framework')
 })
 
 
@@ -186,12 +197,7 @@ class CancelTestsAsync(Resource):
 
 
 # ============================================
-# RAPPORTS — admin, tester, viewer
-# (UNE seule classe report — évite l'écrasement)
-# ============================================
-
-# ============================================
-# ENDPOINTS : RAPPORTS & LOGS ROBOT (Static Artifacts)
+# ENDPOINTS : RAPPORTS & LOGS ROBOT
 # ============================================
 
 @test_ns.route('/report')
@@ -201,13 +207,6 @@ class TestReport(Resource):
     
     @test_ns.doc('get_report')
     def get(self):
-        """
-        Retourne le fichier report.html.
-        Accessible directement par le navigateur pour la visualisation.
-        """
-        import os
-        from flask import send_from_directory
-        
         results_dir = _results_dir()
         report_path = os.path.join(results_dir, 'report.html')
         
@@ -227,13 +226,6 @@ class TestLogFile(Resource):
     
     @test_ns.doc('get_log')
     def get(self):
-        """
-        Retourne le fichier log.html.
-        Accessible pour la navigation bi-directionnelle depuis report.html.
-        """
-        import os
-        from flask import send_from_directory
-        
         results_dir = _results_dir()
         log_path = os.path.join(results_dir, 'log.html')
         
@@ -249,15 +241,10 @@ class TestLogFile(Resource):
 @test_ns.route('/artifacts/<string:filename>')
 @test_ns.route('/<string:filename>.png')
 class TestArtifacts(Resource):
-    """Servir les fichiers de preuves et screenshots (ex: .png, output.xml)."""
+    """Servir les fichiers de preuves et screenshots."""
     
     @test_ns.doc('get_artifact')
     def get(self, filename):
-        """Retourne un fichier de capture d'écran ou de résultat."""
-        import os
-        from flask import send_from_directory
-        
-        # Sécurité : Éviter la traversée de dossiers (Directory Traversal)
         if '..' in filename or filename.startswith('/'):
             return {'success': False, 'error': 'Invalid filename'}, 400
             
@@ -310,3 +297,82 @@ class TestCaseManage(Resource):
         if success:
             return {'success': True, 'message': message}, 200
         return {'success': False, 'error': message}, 404
+
+
+# ============================================
+# IA GENERATOR (Layer 3 LLM) — admin & tester
+# ============================================
+
+@test_ns.route('/generate')
+class GenerateTestScript(Resource):
+    @jwt_required()
+    @roles_required('admin', 'tester')
+    @test_ns.expect(generate_test_model)
+    @test_ns.doc(security='Bearer')
+    def post(self):
+        """
+        [Layer 3 - AI] Génère un script de test Robot Framework via LLM à partir d'une exigence
+        """
+        data = request.get_json() or {}
+        requirement = data.get('requirement', '').strip()
+        test_name = data.get('test_name', 'TC-AI Generated Test').strip()
+        target_suite = data.get('target_suite', '03_ui_tests.robot').strip() # Récupère la suite sélectionnée dans Angular
+        
+        if not requirement:
+            return {'message': 'L\'exigence fonctionnelle est requise'}, 400
+            
+        try:
+            from app.services.llm_service import LLMService
+            result = LLMService.generate_robot_test(requirement, test_name, target_suite)
+            return result, 200
+        except Exception as e:
+            return {'message': f'Erreur lors de la génération IA: {str(e)}'}, 500
+
+
+@test_ns.route('/save-generated')
+class SaveGeneratedTestScript(Resource):
+    @jwt_required()
+    @roles_required('admin', 'tester')
+    @test_ns.expect(save_test_model)
+    @test_ns.doc(security='Bearer')
+    def post(self):
+        """
+        [Layer 3 - AI] Enregistre ou fusionne un script généré dans la suite sélectionnée
+        """
+        data = request.get_json() or {}
+        filename = data.get('filename', '').strip()
+        content = data.get('content', '').strip()
+        
+        if not filename or not content:
+            return {'message': 'Le nom de fichier et le contenu sont requis'}, 400
+            
+        safe_filename = os.path.basename(filename)
+        if not safe_filename.endswith('.robot'):
+            safe_filename += '.robot'
+            
+        try:
+            parser = get_default_parser()
+            suites_dir = str(parser.suites_directory)
+            os.makedirs(suites_dir, exist_ok=True)
+            file_path = os.path.join(suites_dir, safe_filename)
+            
+            # Si le fichier existe déjà, on extrait la section *** Test Cases *** pour l'ajouter proprement
+            if os.path.exists(file_path):
+                import re
+                test_case_match = re.search(r'\*\*\* Test Cases \*\*\*\s*(.*)', content, re.DOTALL)
+                test_case_body = test_case_match.group(1).strip() if test_case_match else content
+                
+                with open(file_path, 'a', encoding='utf-8') as f:
+                    f.write(f"\n\n{test_case_body}\n")
+            else:
+                # Si le fichier n'existe pas, on écrit le fichier complet avec en-têtes
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                
+            return {
+                'message': f'Test enregistré dans {safe_filename}', 
+                'file_path': file_path,
+                'file_name': safe_filename
+            }, 201
+        except Exception as e:
+            return {'message': f'Erreur d\'écriture fichier: {str(e)}'}, 500

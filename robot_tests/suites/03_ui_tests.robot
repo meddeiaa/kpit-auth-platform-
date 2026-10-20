@@ -134,3 +134,22 @@ TC-802 Ali (Viewer Role) Can Login
     Verify Welcome Page Is Displayed
     Verify Welcome Message Contains    Welcome back, ${ALI_FIRST_NAME}
 
+
+
+
+
+
+TC-AI-01 Test Case
+    [Documentation]    Test généré automatiquement pour : Vérifier la connexion de Sara
+    [Tags]             ai-generated    auto
+    Perform Login    ${SARA_LOGIN}    ${SARA_PASSWORD}
+    Verify Welcome Page Is Displayed
+    Verify Welcome Message Contains    Welcome back, ${SARA_FIRST_NAME}
+
+
+TC-AI-03 Test Case
+    Perform Login    ${AHMED_LOGIN}    WrongPass123
+    Verify Error Message Is Displayed    Invalid username or password
+
+
+
