@@ -1,0 +1,41 @@
+# Blueprint Render : backend Flask (Docker) + frontend Angular + nginx (Docker).
+# Le frontend relaie /api/* vers le backend : le navigateur ne parle qu'au frontend (pas de CORS).
+services:
+  - type: web
+    name: kpit-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SMTP_HOST
+        value: smtp-relay.brevo.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+
+  - type: web
+    name: kpit-frontend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    healthCheckPath: /
+    envVars:
+      # nginx relaie /api/* vers le backend (le navigateur ne parle qu'au frontend)
+      - key: BACKEND_URL
+        value: https://kpit-backend.onrender.com
+      - key: BACKEND_HOST
+        value: kpit-backend.onrender.com
+      - key: NGINX_RESOLVER
+        value: 1.1.1.1
